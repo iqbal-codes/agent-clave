@@ -1,0 +1,25 @@
+{
+	"$schema": "https://ui.shadcn.com/schema.json",
+	"style": "base-luma",
+	"rsc": true,
+	"tsx": true,
+	"tailwind": {
+		"config": "",
+		"css": "src/styles/globals.css",
+		"baseColor": "neutral",
+		"cssVariables": true,
+		"prefix": ""
+	},
+	"iconLibrary": "lucide",
+	"aliases": {
+		"components": "@agentclave/ui/components",
+		"utils": "@agentclave/ui/lib/utils",
+		"hooks": "@agentclave/ui/hooks",
+		"lib": "@agentclave/ui/lib",
+		"ui": "@agentclave/ui/components"
+	},
+	"menuColor": "default",
+	"menuAccent": "subtle",
+	"registries": {},
+	"rtl": false
+}

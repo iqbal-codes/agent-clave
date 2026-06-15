@@ -1,0 +1,37 @@
+{
+	"name": "@agentclave/api",
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@agentclave/auth": "workspace:*",
+		"@agentclave/db": "workspace:*",
+		"@agentclave/env": "workspace:*",
+		"@agentclave/schemas": "workspace:*",
+		"@agentclave/types": "workspace:*",
+		"@orpc/client": "catalog:",
+		"@orpc/openapi": "catalog:",
+		"@orpc/server": "catalog:",
+		"@orpc/zod": "catalog:",
+		"ajv": "catalog:",
+		"bullmq": "catalog:",
+		"dotenv": "catalog:",
+		"drizzle-orm": "^0.45.1",
+		"ioredis": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@agentclave/config": "workspace:*",
+		"hono": "catalog:",
+		"typescript": "catalog:"
+	}
+}

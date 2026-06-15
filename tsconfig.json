@@ -1,0 +1,3 @@
+{
+	"extends": "@agentclave/config/tsconfig.base.json"
+}

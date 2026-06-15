@@ -1,0 +1,31 @@
+{
+	"name": "@agentclave/api-server",
+	"type": "module",
+	"main": "src/index.ts",
+	"scripts": {
+		"build": "vp pack",
+		"check-types": "tsc -b",
+		"dev": "node --import tsx src/index.ts"
+	},
+	"dependencies": {
+		"@hono/node-server": "^2.0.4",
+		"@agentclave/api": "workspace:*",
+		"@agentclave/auth": "workspace:*",
+		"@agentclave/db": "workspace:*",
+		"@agentclave/env": "workspace:*",
+		"@orpc/openapi": "catalog:",
+		"@orpc/server": "catalog:",
+		"@orpc/zod": "catalog:",
+		"@aws-sdk/client-s3": "catalog:",
+		"better-auth": "catalog:",
+		"hono": "catalog:",
+		"drizzle-orm": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@agentclave/config": "workspace:*",
+		"tsx": "^4.19.0",
+		"typescript": "catalog:",
+		"vite-plus": "catalog:"
+	}
+}

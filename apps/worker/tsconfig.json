@@ -1,0 +1,7 @@
+{
+	"extends": "@agentclave/config/tsconfig.base.json",
+	"compilerOptions": {
+		"composite": true,
+		"outDir": "dist"
+	}
+}

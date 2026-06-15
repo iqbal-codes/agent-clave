@@ -1,0 +1,23 @@
+{
+	"name": "@agentclave/worker",
+	"type": "module",
+	"main": "src/index.ts",
+	"scripts": {
+		"build": "vp pack",
+		"check-types": "tsc -b",
+		"dev": "node --import tsx src/index.ts"
+	},
+	"dependencies": {
+		"@agentclave/api": "workspace:*",
+		"@agentclave/env": "workspace:*",
+		"@agentclave/schemas": "workspace:*",
+		"@agentclave/types": "workspace:*",
+		"bullmq": "catalog:"
+	},
+	"devDependencies": {
+		"@agentclave/config": "workspace:*",
+		"tsx": "^4.19.0",
+		"typescript": "catalog:",
+		"vite-plus": "catalog:"
+	}
+}

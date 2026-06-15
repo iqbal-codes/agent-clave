@@ -1,0 +1,36 @@
+{
+	"name": "@agentclave/web",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite --port 5100",
+		"build": "tsc -b && vite build",
+		"check-types": "tsc --noEmit",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@agentclave/api-client": "workspace:*",
+		"@agentclave/types": "workspace:*",
+		"@agentclave/ui": "workspace:*",
+		"@tanstack/react-query": "catalog:",
+		"lucide-react": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"react-router-dom": "catalog:",
+		"sonner": "catalog:",
+		"zod": "catalog:",
+		"nuqs": "^2.4.1",
+		"better-auth": "catalog:"
+	},
+	"devDependencies": {
+		"@agentclave/api": "workspace:*",
+		"@agentclave/config": "workspace:*",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"@vitejs/plugin-react": "catalog:",
+		"@tailwindcss/vite": "catalog:",
+		"typescript": "catalog:",
+		"vite": "catalog:"
+	}
+}
