@@ -1,6 +1,7 @@
 import { SidebarTrigger } from "@agentclave/ui/components/sidebar";
 import { Separator } from "@agentclave/ui/components/separator";
 import { AnimatedThemeToggler } from "@agentclave/ui/components/animated-theme-toggler";
+import { ConnectionBadge } from "../realtime/connection-badge";
 
 export function Header() {
 	return (
@@ -11,6 +12,7 @@ export function Header() {
 			</div>
 
 			<div className="flex items-center gap-2 px-4">
+				<ConnectionBadge />
 				<AnimatedThemeToggler
 					variant="circle"
 					className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"

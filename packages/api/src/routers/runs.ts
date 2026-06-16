@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, count } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@agentclave/db";
 import {
@@ -11,19 +11,28 @@ import {
 } from "@agentclave/db/schema/business";
 import { organizationProcedure } from "../index";
 import { throwNotFound } from "../core/errors";
-import { tableQuerySchema } from "@agentclave/schemas";
+import { runListQuerySchema, tableQuerySchema } from "@agentclave/schemas";
 
 export const runsRouter = {
-	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context, input }) => {
+	list: organizationProcedure.input(runListQuerySchema).handler(async ({ context, input }) => {
 		const orgId = context.activeOrganization!.id;
+		const conditions = [eq(agentRuns.organizationId, orgId)];
+		if (input.status) {
+			conditions.push(eq(agentRuns.status, input.status));
+		}
+		const [countResult] = await db
+			.select({ total: count() })
+			.from(agentRuns)
+			.where(and(...conditions));
+		const total = Number(countResult?.total ?? 0);
 		const rows = await db
 			.select()
 			.from(agentRuns)
-			.where(eq(agentRuns.organizationId, orgId))
+			.where(and(...conditions))
 			.orderBy(desc(agentRuns.createdAt))
 			.limit(input.pageSize)
 			.offset((input.page - 1) * input.pageSize);
-		return rows;
+		return { items: rows, total: Number(total) };
 	}),
 
 	getById: organizationProcedure
@@ -81,30 +90,23 @@ export const runsRouter = {
 		.input(z.object({ agentId: z.string() }).merge(tableQuerySchema))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
+			const conditions = [
+				eq(agentRuns.organizationId, orgId),
+				eq(agentRuns.agentId, input.agentId),
+			];
+			const [countResult] = await db
+				.select({ total: count() })
+				.from(agentRuns)
+				.where(and(...conditions));
+			const total = Number(countResult?.total ?? 0);
 			const rows = await db
 				.select()
 				.from(agentRuns)
-				.where(and(eq(agentRuns.organizationId, orgId), eq(agentRuns.agentId, input.agentId)))
+				.where(and(...conditions))
 				.orderBy(desc(agentRuns.createdAt))
 				.limit(input.pageSize)
 				.offset((input.page - 1) * input.pageSize);
-			return rows;
-		}),
-
-	listPendingApproval: organizationProcedure
-		.input(tableQuerySchema)
-		.handler(async ({ context, input }) => {
-			const orgId = context.activeOrganization!.id;
-			const rows = await db
-				.select()
-				.from(agentRuns)
-				.where(
-					and(eq(agentRuns.organizationId, orgId), eq(agentRuns.status, "waiting_for_approval")),
-				)
-				.orderBy(desc(agentRuns.createdAt))
-				.limit(input.pageSize)
-				.offset((input.page - 1) * input.pageSize);
-			return rows;
+			return { items: rows, total: Number(total) };
 		}),
 
 	cancel: organizationProcedure

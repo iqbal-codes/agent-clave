@@ -1,38 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
+import { rpcClient } from "../../runtime";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@agentclave/ui/components/card";
 import { Badge } from "@agentclave/ui/components/badge";
 import { Skeleton } from "@agentclave/ui/components/skeleton";
 import { Bot, ArrowRight } from "lucide-react";
-
-interface Agent {
-	id: string;
-	name: string;
-	description: string | null;
-	role: string | null;
-	model: string;
-	riskLevel: string;
-	status: string;
-}
+import { Button } from "@agentclave/ui/components/button";
 
 export function AgentsPage() {
-	const { data: agents, isLoading } = useQuery({
+	const { data, isLoading } = useQuery({
 		queryKey: ["agents"],
 		queryFn: async () => {
-			const res = await fetch("/api/agents/list", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ page: 1, pageSize: 100 }),
-			});
-			return res.json() as Promise<Agent[]>;
+			return rpcClient.agents.list({ page: 1, pageSize: 100 });
 		},
 	});
+	const agents = data?.items;
 
 	return (
 		<div className="space-y-6 p-6">
-			<div>
-				<h1 className="text-2xl font-bold">Agents</h1>
-				<p className="text-muted-foreground">Manage your governed AI agents.</p>
+			<div className="flex items-center justify-between">
+				<div>
+					<h1 className="text-2xl font-bold">Agents</h1>
+					<p className="text-muted-foreground">Manage your governed AI agents.</p>
+				</div>
+				<Link to="/agents/new">
+					<Button>New Agent</Button>
+				</Link>
 			</div>
 
 			{isLoading ? (

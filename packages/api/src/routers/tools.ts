@@ -1,23 +1,53 @@
 import { randomUUID } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, inArray, ilike, count, asc, desc } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@agentclave/db";
 import { tools, agentTools } from "@agentclave/db/schema/business";
 import { organizationProcedure } from "../index";
 import { throwNotFound } from "../core/errors";
-import { createToolSchema, bindAgentToolSchema, tableQuerySchema } from "@agentclave/schemas";
+import { createToolSchema, bindAgentToolSchema, toolListQuerySchema } from "@agentclave/schemas";
 import { validateJsonSchemaPayload } from "../core/json-schema/validate";
 
 export const toolsRouter = {
-	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context, input }) => {
+	list: organizationProcedure.input(toolListQuerySchema).handler(async ({ context, input }) => {
 		const orgId = context.activeOrganization!.id;
-		return await db
+		const conditions = [eq(tools.organizationId, orgId)];
+		if (input.search) {
+			conditions.push(
+				or(ilike(tools.name, `%${input.search}%`), ilike(tools.description, `%${input.search}%`))!,
+			);
+		}
+		if (input.riskLevel && input.riskLevel.length > 0) {
+			conditions.push(inArray(tools.riskLevel, input.riskLevel));
+		}
+		if (input.executorType && input.executorType.length > 0) {
+			conditions.push(inArray(tools.executorType, input.executorType));
+		}
+		if (input.defaultPolicy && input.defaultPolicy.length > 0) {
+			conditions.push(inArray(tools.defaultPolicy, input.defaultPolicy));
+		}
+		if (input.status && input.status.length > 0) {
+			conditions.push(inArray(tools.status, input.status));
+		}
+		const [countResult] = await db
+			.select({ total: count() })
+			.from(tools)
+			.where(and(...conditions));
+		const total = Number(countResult?.total ?? 0);
+		const sortColumn =
+			input.sort === "name"
+				? tools.name
+				: input.sort === "riskLevel"
+					? tools.riskLevel
+					: tools.createdAt;
+		const rows = await db
 			.select()
 			.from(tools)
-			.where(eq(tools.organizationId, orgId))
-			.orderBy(tools.createdAt)
+			.where(and(...conditions))
+			.orderBy(input.order === "asc" ? asc(sortColumn) : desc(sortColumn))
 			.limit(input.pageSize)
 			.offset((input.page - 1) * input.pageSize);
+		return { items: rows, total: Number(total) };
 	}),
 
 	getById: organizationProcedure

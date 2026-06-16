@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray, ilike, count, asc, desc } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@agentclave/db";
 import { connectors, webhookEndpoints, webhookDeliveries } from "@agentclave/db/schema/business";
@@ -9,21 +9,53 @@ import {
 	createConnectorSchema,
 	createWebhookEndpointSchema,
 	tableQuerySchema,
+	connectorListQuerySchema,
 } from "@agentclave/schemas";
 import { encryptSecret } from "../core/credentials";
 
 export const connectorsRouter = {
 	// ── Connectors ──────────────────────────────────────────
-	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context, input }) => {
-		const orgId = context.activeOrganization!.id;
-		return await db
-			.select()
-			.from(connectors)
-			.where(eq(connectors.organizationId, orgId))
-			.orderBy(connectors.createdAt)
-			.limit(input.pageSize)
-			.offset((input.page - 1) * input.pageSize);
-	}),
+	list: organizationProcedure
+		.input(connectorListQuerySchema)
+		.handler(async ({ context, input }) => {
+			const orgId = context.activeOrganization!.id;
+			const conditions = [eq(connectors.organizationId, orgId)];
+			if (input.search) {
+				conditions.push(ilike(connectors.name, `%${input.search}%`));
+			}
+			if (input.type && input.type.length > 0) {
+				conditions.push(inArray(connectors.type, input.type));
+			}
+			if (input.provider && input.provider.length > 0) {
+				conditions.push(inArray(connectors.provider, input.provider));
+			}
+			if (input.status && input.status.length > 0) {
+				conditions.push(inArray(connectors.status, input.status));
+			}
+			const [countResult] = await db
+				.select({ total: count() })
+				.from(connectors)
+				.where(and(...conditions));
+			const total = Number(countResult?.total ?? 0);
+			const sortColumn =
+				input.sort === "name"
+					? connectors.name
+					: input.sort === "type"
+						? connectors.type
+						: input.sort === "provider"
+							? connectors.provider
+							: input.sort === "status"
+								? connectors.status
+								: connectors.createdAt;
+			const rows = await db
+				.select()
+				.from(connectors)
+				.where(and(...conditions))
+				.orderBy(input.order === "asc" ? asc(sortColumn) : desc(sortColumn))
+				.limit(input.pageSize)
+				.offset((input.page - 1) * input.pageSize);
+			return { items: rows, total: Number(total) };
+		}),
 
 	getById: organizationProcedure
 		.input(z.object({ id: z.string() }))
@@ -105,13 +137,19 @@ export const connectorsRouter = {
 			if (input.connectorId) {
 				conditions.push(eq(webhookEndpoints.connectorId, input.connectorId));
 			}
-			return await db
+			const [countResult] = await db
+				.select({ total: count() })
+				.from(webhookEndpoints)
+				.where(and(...conditions));
+			const total = Number(countResult?.total ?? 0);
+			const rows = await db
 				.select()
 				.from(webhookEndpoints)
 				.where(and(...conditions))
 				.orderBy(webhookEndpoints.createdAt)
 				.limit(input.pageSize)
 				.offset((input.page - 1) * input.pageSize);
+			return { items: rows, total: Number(total) };
 		}),
 
 	createEndpoint: organizationProcedure
@@ -190,17 +228,22 @@ export const connectorsRouter = {
 		.input(z.object({ endpointId: z.string() }).merge(tableQuerySchema))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
-			return await db
+			const deliveryConditions = [
+				eq(webhookDeliveries.organizationId, orgId),
+				eq(webhookDeliveries.endpointId, input.endpointId),
+			];
+			const [countResult] = await db
+				.select({ total: count() })
+				.from(webhookDeliveries)
+				.where(and(...deliveryConditions));
+			const total = Number(countResult?.total ?? 0);
+			const rows = await db
 				.select()
 				.from(webhookDeliveries)
-				.where(
-					and(
-						eq(webhookDeliveries.organizationId, orgId),
-						eq(webhookDeliveries.endpointId, input.endpointId),
-					),
-				)
+				.where(and(...deliveryConditions))
 				.orderBy(webhookDeliveries.receivedAt)
 				.limit(input.pageSize)
 				.offset((input.page - 1) * input.pageSize);
+			return { items: rows, total: Number(total) };
 		}),
 };

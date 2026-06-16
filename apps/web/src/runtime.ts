@@ -10,5 +10,5 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 export const queryClient = createQueryClient();
 const link = createOrpcLink(API_URL);
-const client: AppRouterClient = createApiClient<AppRouterClient>(link);
-export const orpc = createOrpc(client);
+export const rpcClient: AppRouterClient = createApiClient<AppRouterClient>(link);
+export const orpc = createOrpc(rpcClient);

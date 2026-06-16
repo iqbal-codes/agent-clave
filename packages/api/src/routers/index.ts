@@ -7,7 +7,8 @@ import { toolRequestsRouter } from "./tool-requests";
 import { policyRouter } from "./policy";
 import { connectorsRouter } from "./connectors";
 import { toolsRouter } from "./tools";
-import { auditRouter } from "./audit";
+import { realtimeRouter } from "./realtime";
+// audit router removed - audit logs now shown on Run Detail page
 
 export const appRouter = {
 	healthCheck: publicProcedure.handler(() => "OK"),
@@ -27,23 +28,21 @@ export const appRouter = {
 		pause: agentsRouter.pause,
 		activate: agentsRouter.activate,
 		listTools: agentsRouter.listTools,
+		testRun: agentsRouter.testRun,
 	},
 
 	runs: {
 		list: runsRouter.list,
 		getById: runsRouter.getById,
 		listByAgentId: runsRouter.listByAgentId,
-		listPendingApproval: runsRouter.listPendingApproval,
 		cancel: runsRouter.cancel,
 	},
 
 	toolRequests: {
 		listByRunId: toolRequestsRouter.listByRunId,
-		listPendingApproval: toolRequestsRouter.listPendingApproval,
 		getApprovalSession: toolRequestsRouter.getApprovalSession,
 		reviewApproval: toolRequestsRouter.reviewApproval,
 	},
-
 	policy: {
 		list: policyRouter.list,
 		getById: policyRouter.getById,
@@ -75,8 +74,8 @@ export const appRouter = {
 		unbindFromAgent: toolsRouter.unbindFromAgent,
 	},
 
-	auditLogs: {
-		list: auditRouter.list,
+	realtime: {
+		subscribe: realtimeRouter.subscribe,
 	},
 };
 

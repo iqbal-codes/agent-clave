@@ -98,3 +98,30 @@ export const ROLE_PERMISSION_MAP: Record<RoleKey, readonly PermissionKey[]> = {
 export function getPermissionsForRole(role: string): readonly PermissionKey[] {
 	return ROLE_PERMISSION_MAP[role as RoleKey] ?? [];
 }
+// ── Realtime Events ───────────────────────────────────────
+export type RunUpdatedEvent = {
+	type: "run.updated";
+	organizationId: string;
+	runId: string;
+	status: RunStatus;
+};
+
+export type ApprovalPendingEvent = {
+	type: "approval.pending";
+	organizationId: string;
+	runId: string;
+	approvalId: string;
+	toolRequestId: string;
+	toolName: string;
+};
+
+export type ApprovalDecidedEvent = {
+	type: "approval.decided";
+	organizationId: string;
+	runId: string;
+	approvalId: string;
+	toolRequestId: string;
+	status: ApprovalStatus;
+};
+
+export type RealtimeEvent = RunUpdatedEvent | ApprovalPendingEvent | ApprovalDecidedEvent;

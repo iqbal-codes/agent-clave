@@ -1,6 +1,6 @@
 import { eq, sql, count } from "drizzle-orm";
 import { db } from "@agentclave/db";
-import { agents, agentRuns, toolRequests } from "@agentclave/db/schema/business";
+import { agentRuns, toolRequests } from "@agentclave/db/schema/business";
 import { organizationProcedure, publicProcedure } from "../index";
 import { updateOrganizationSchema } from "@agentclave/schemas";
 
@@ -39,9 +39,11 @@ export const organizationRouter = {
 			);
 
 		const [activeAgentCount] = await db
-			.select({ value: count() })
-			.from(agents)
-			.where(sql`${agents.organizationId} = ${orgId} AND ${agents.status} = 'active'`);
+			.select({ value: count(sql`DISTINCT ${agentRuns.agentId}`) })
+			.from(agentRuns)
+			.where(
+				sql`${agentRuns.organizationId} = ${orgId} AND ${agentRuns.status} IN ('queued', 'running', 'waiting_for_approval')`,
+			);
 
 		const [completedCount] = await db
 			.select({ value: count() })

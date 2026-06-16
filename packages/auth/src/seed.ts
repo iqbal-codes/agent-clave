@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "./db-instance";
 import {
 	organizationSettings,
@@ -17,6 +17,7 @@ const now = () => new Date();
 
 export async function seedWorkspaceTables(orgId: string, userId: string): Promise<void> {
 	const timestamp = now();
+	const telegramEnabled = Boolean(process.env.TELEGRAM_BOT_TOKEN);
 
 	// ── Org Settings ──────────────────────────────────────
 	const existingSettings = await db.query.organizationSettings.findFirst({
@@ -68,26 +69,49 @@ export async function seedWorkspaceTables(orgId: string, userId: string): Promis
 			createdAt: timestamp,
 			updatedAt: timestamp,
 		});
-
 		// ── Connectors ──────────────────────────────────────
-		const telegramConnectorId = randomUUID();
 		const inventoryConnectorId = randomUUID();
 
-		await db.insert(connectors).values({
-			id: telegramConnectorId,
-			organizationId: orgId,
-			type: "telegram",
-			provider: "telegram",
-			name: "Telegram Bot",
-			config: { managerChatId: process.env.TELEGRAM_MANAGER_CHAT_ID ?? "" },
-			encryptedCredentials: encryptSecret(
-				{ botToken: process.env.TELEGRAM_BOT_TOKEN ?? "" },
-				env.CREDENTIAL_ENCRYPTION_KEY,
-			),
-			status: "paused",
-			createdAt: timestamp,
-			updatedAt: timestamp,
-		});
+		if (telegramEnabled) {
+			const telegramConnectorId = randomUUID();
+			await db.insert(connectors).values({
+				id: telegramConnectorId,
+				organizationId: orgId,
+				type: "telegram",
+				provider: "telegram",
+				name: "Telegram Bot",
+				config: { managerChatId: process.env.TELEGRAM_MANAGER_CHAT_ID ?? "" },
+				encryptedCredentials: encryptSecret(
+					{ botToken: process.env.TELEGRAM_BOT_TOKEN ?? "" },
+					env.CREDENTIAL_ENCRYPTION_KEY,
+				),
+				status: "paused",
+				createdAt: timestamp,
+				updatedAt: timestamp,
+			});
+
+			// ── Webhook Endpoint ────────────────────────────
+			const webhookToken = randomUUID().replace(/-/g, "").slice(0, 32);
+			await db.insert(webhookEndpoints).values({
+				id: randomUUID(),
+				organizationId: orgId,
+				connectorId: telegramConnectorId,
+				agentId,
+				name: "Telegram inbound",
+				publicToken: webhookToken,
+				verificationType: "header_secret",
+				secretHeaderName: "X-Telegram-Bot-Api-Secret-Token",
+				encryptedSecret: encryptSecret(
+					{ secret: process.env.TELEGRAM_WEBHOOK_SECRET ?? "dev-telegram-secret" },
+					env.CREDENTIAL_ENCRYPTION_KEY,
+				),
+				responseStatus: 202,
+				responseBody: { ok: true },
+				status: "paused",
+				createdAt: timestamp,
+				updatedAt: timestamp,
+			});
+		}
 
 		await db.insert(connectors).values({
 			id: inventoryConnectorId,
@@ -105,33 +129,10 @@ export async function seedWorkspaceTables(orgId: string, userId: string): Promis
 			updatedAt: timestamp,
 		});
 
-		// ── Webhook Endpoint ────────────────────────────────
-		const webhookToken = randomUUID().replace(/-/g, "").slice(0, 32);
-		await db.insert(webhookEndpoints).values({
-			id: randomUUID(),
-			organizationId: orgId,
-			connectorId: telegramConnectorId,
-			agentId,
-			name: "Telegram inbound",
-			publicToken: webhookToken,
-			verificationType: "header_secret",
-			secretHeaderName: "X-Telegram-Bot-Api-Secret-Token",
-			encryptedSecret: encryptSecret(
-				{ secret: process.env.TELEGRAM_WEBHOOK_SECRET ?? "dev-telegram-secret" },
-				env.CREDENTIAL_ENCRYPTION_KEY,
-			),
-			responseStatus: 202,
-			responseBody: { ok: true },
-			status: "paused",
-			createdAt: timestamp,
-			updatedAt: timestamp,
-		});
-
 		// ── Tools ───────────────────────────────────────────
 		const searchProductToolId = randomUUID();
 		const getStockToolId = randomUUID();
 		const createAdjustmentToolId = randomUUID();
-		const sendMessageToolId = randomUUID();
 
 		const toolDefs = [
 			{
@@ -216,33 +217,6 @@ export async function seedWorkspaceTables(orgId: string, userId: string): Promis
 				},
 				defaultPolicy: "require_approval" as const,
 			},
-			{
-				id: sendMessageToolId,
-				name: "telegram.send_message",
-				description: "Send a message via Telegram",
-				connectorId: telegramConnectorId,
-				inputSchema: {
-					type: "object",
-					properties: {
-						chatId: { type: "string", description: "Telegram chat ID" },
-						text: { type: "string", description: "Message text" },
-					},
-					required: ["chatId", "text"],
-				},
-				outputSchema: {
-					type: "object",
-					properties: { ok: { type: "boolean" } },
-				},
-				riskLevel: "medium" as const,
-				executorType: "http",
-				executorConfig: {
-					method: "POST",
-					url: "https://api.telegram.org/bot{{credentials.botToken}}/sendMessage",
-					headers: { "Content-Type": "application/json" },
-					body: "input",
-				},
-				defaultPolicy: "allow" as const,
-			},
 		];
 
 		for (const toolDef of toolDefs) {
@@ -272,6 +246,54 @@ export async function seedWorkspaceTables(orgId: string, userId: string): Promis
 			});
 		}
 
+		if (telegramEnabled) {
+			const telegramConnectorRow = await db.query.connectors.findFirst({
+				where: and(eq(connectors.organizationId, orgId), eq(connectors.provider, "telegram")),
+			});
+			if (telegramConnectorRow) {
+				const sendMessageToolId = randomUUID();
+				await db.insert(tools).values({
+					id: sendMessageToolId,
+					organizationId: orgId,
+					connectorId: telegramConnectorRow.id,
+					name: "telegram.send_message",
+					description: "Send a message via Telegram",
+					inputSchema: {
+						type: "object",
+						properties: {
+							chatId: { type: "string", description: "Telegram chat ID" },
+							text: { type: "string", description: "Message text" },
+						},
+						required: ["chatId", "text"],
+					},
+					outputSchema: {
+						type: "object",
+						properties: { ok: { type: "boolean" } },
+					},
+					riskLevel: "medium",
+					executorType: "http",
+					executorConfig: {
+						method: "POST",
+						url: "https://api.telegram.org/bot{{credentials.botToken}}/sendMessage",
+						headers: { "Content-Type": "application/json" },
+						body: "input",
+					},
+					defaultPolicy: "allow",
+					status: "active",
+					createdAt: timestamp,
+					updatedAt: timestamp,
+				});
+
+				await db.insert(agentTools).values({
+					id: randomUUID(),
+					agentId,
+					toolId: sendMessageToolId,
+					enabled: true,
+					createdAt: timestamp,
+				});
+			}
+		}
+
 		// ── Default Policies ──────────────────────────────────
 		const policyDefs = [
 			{ toolName: "inventory.search_product", effect: "allow" as const },
@@ -281,8 +303,11 @@ export async function seedWorkspaceTables(orgId: string, userId: string): Promis
 				effect: "require_approval" as const,
 				approverRole: "manager",
 			},
-			{ toolName: "telegram.send_message", effect: "allow" as const },
 		];
+
+		if (telegramEnabled) {
+			policyDefs.push({ toolName: "telegram.send_message", effect: "allow" as const });
+		}
 
 		for (const pDef of policyDefs) {
 			await db.insert(policies).values({

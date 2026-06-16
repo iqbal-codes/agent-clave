@@ -17,6 +17,7 @@ import { env } from "@agentclave/env/server";
 import { evaluatePolicy, type PolicyRule } from "../policy/evaluate";
 import { executeToolRequest } from "../executors";
 import { validateJsonSchemaPayload } from "../json-schema/validate";
+import { publishRealtimeEvent } from "../realtime/publisher";
 
 interface OpenRouterToolCall {
 	id: string;
@@ -137,6 +138,12 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 			updatedAt: new Date(),
 		})
 		.where(eq(agentRuns.id, runId));
+	await publishRealtimeEvent({
+		type: "run.updated",
+		organizationId: run.organizationId,
+		runId,
+		status: "running",
+	});
 
 	await writeStep({
 		runId,
@@ -231,6 +238,12 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 					updatedAt: new Date(),
 				})
 				.where(eq(agentRuns.id, runId));
+			await publishRealtimeEvent({
+				type: "run.updated",
+				organizationId: run.organizationId,
+				runId,
+				status: "failed",
+			});
 
 			await writeStep({
 				runId,
@@ -276,6 +289,12 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 					updatedAt: new Date(),
 				})
 				.where(eq(agentRuns.id, runId));
+			await publishRealtimeEvent({
+				type: "run.updated",
+				organizationId: run.organizationId,
+				runId,
+				status: "completed",
+			});
 
 			await writeStep({
 				runId,
@@ -300,6 +319,12 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 					updatedAt: new Date(),
 				})
 				.where(eq(agentRuns.id, runId));
+			await publishRealtimeEvent({
+				type: "run.updated",
+				organizationId: run.organizationId,
+				runId,
+				status: "failed",
+			});
 
 			return;
 		}
@@ -521,8 +546,9 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 			const approvalCode = generateApprovalCode();
 			const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+			const approvalId = randomUUID();
 			await db.insert(approvalSessions).values({
-				id: randomUUID(),
+				id: approvalId,
 				organizationId: run.organizationId,
 				runId,
 				toolRequestId: requestId,
@@ -533,6 +559,15 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 				expiresAt,
 			});
 
+			await publishRealtimeEvent({
+				type: "approval.pending",
+				organizationId: run.organizationId,
+				runId,
+				approvalId,
+				toolRequestId: requestId,
+				toolName,
+			});
+
 			await db
 				.update(agentRuns)
 				.set({
@@ -540,6 +575,12 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 					updatedAt: new Date(),
 				})
 				.where(eq(agentRuns.id, runId));
+			await publishRealtimeEvent({
+				type: "run.updated",
+				organizationId: run.organizationId,
+				runId,
+				status: "waiting_for_approval",
+			});
 
 			await writeAudit({
 				organizationId: run.organizationId,
@@ -653,6 +694,12 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 			updatedAt: new Date(),
 		})
 		.where(eq(agentRuns.id, runId));
+	await publishRealtimeEvent({
+		type: "run.updated",
+		organizationId: run.organizationId,
+		runId,
+		status: "failed",
+	});
 }
 
 async function sendTelegramApproval(input: {

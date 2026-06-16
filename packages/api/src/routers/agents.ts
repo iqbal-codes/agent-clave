@@ -1,23 +1,37 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@agentclave/db";
-import { agents, agentTools, tools } from "@agentclave/db/schema/business";
+import { agents, agentTools, tools, agentRuns } from "@agentclave/db/schema/business";
 import { organizationProcedure } from "../index";
-import { throwNotFound } from "../core/errors";
-import { createAgentSchema, updateAgentSchema, tableQuerySchema } from "@agentclave/schemas";
+import { throwNotFound, throwAgentDisabled } from "../core/errors";
+import {
+	createAgentSchema,
+	updateAgentSchema,
+	tableQuerySchema,
+	testRunSchema,
+} from "@agentclave/schemas";
+import { enqueueAgentRunJob } from "../core/queues";
+import { writeAudit } from "../core/audit";
+import { publishRealtimeEvent } from "../core/realtime/publisher";
 
 export const agentsRouter = {
 	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context, input }) => {
 		const orgId = context.activeOrganization!.id;
+		const conditions = [eq(agents.organizationId, orgId)];
+		const [countResult] = await db
+			.select({ total: count() })
+			.from(agents)
+			.where(and(...conditions));
+		const total = Number(countResult?.total ?? 0);
 		const rows = await db
 			.select()
 			.from(agents)
-			.where(eq(agents.organizationId, orgId))
+			.where(and(...conditions))
 			.orderBy(agents.createdAt)
 			.limit(input.pageSize)
 			.offset((input.page - 1) * input.pageSize);
-		return rows;
+		return { items: rows, total: Number(total) };
 	}),
 
 	getById: organizationProcedure
@@ -128,4 +142,51 @@ export const agentsRouter = {
 
 			return toolList.filter((t) => toolIds.includes(t.id));
 		}),
+	testRun: organizationProcedure.input(testRunSchema).handler(async ({ context, input }) => {
+		const orgId = context.activeOrganization!.id;
+		const userId = context.session!.user.id;
+
+		const [agent] = await db
+			.select()
+			.from(agents)
+			.where(and(eq(agents.id, input.agentId), eq(agents.organizationId, orgId)))
+			.limit(1);
+
+		if (!agent) throwNotFound("Agent");
+		if (agent.status !== "active") throwAgentDisabled(agent.name);
+
+		const runId = randomUUID();
+		await db.insert(agentRuns).values({
+			id: runId,
+			organizationId: orgId,
+			agentId: input.agentId,
+			status: "queued",
+			triggerSource: "test_run",
+			requesterId: userId,
+			requesterMetadata: { source: "web" },
+			inputMessage: input.message,
+			inputPayload: { message: input.message },
+		});
+
+		await writeAudit({
+			organizationId: orgId,
+			actorType: "user",
+			actorId: userId,
+			runId,
+			targetType: "agent_run",
+			targetId: runId,
+			action: "run.test_requested",
+		});
+
+		await enqueueAgentRunJob({ runId });
+
+		await publishRealtimeEvent({
+			type: "run.updated",
+			organizationId: orgId,
+			runId,
+			status: "queued",
+		});
+
+		return { runId };
+	}),
 };

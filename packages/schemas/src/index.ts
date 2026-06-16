@@ -9,6 +9,13 @@ export const tableQuerySchema = z.object({
 	search: z.string().optional(),
 });
 export type TableQueryInput = z.infer<typeof tableQuerySchema>;
+// ── Paginated List Response ─────────────────────────────────
+export function paginatedListSchema<T extends z.ZodTypeAny>(itemSchema: T) {
+	return z.object({
+		items: z.array(itemSchema),
+		total: z.number().int().nonnegative(),
+	});
+}
 
 // ── JSON Object ──────────────────────────────────────────────
 export const jsonObjectSchema = z.record(z.string(), z.unknown());
@@ -135,6 +142,28 @@ export const updatePolicyRuleSchema = createPolicyRuleSchema.partial().extend({
 	id: z.string(),
 	enabled: z.boolean().optional(),
 });
+// ── Route-Specific List Query Schemas ───────────────────────
+export const runListQuerySchema = tableQuerySchema.extend({
+	status: runStatusSchema.optional(),
+});
+export type RunListQueryInput = z.infer<typeof runListQuerySchema>;
+
+export const toolListQuerySchema = tableQuerySchema.extend({
+	sort: z.enum(["name", "createdAt", "riskLevel"]).optional(),
+	riskLevel: z.array(z.enum(["low", "medium", "high", "critical"])).optional(),
+	executorType: z.array(z.string()).optional(),
+	defaultPolicy: z.array(policyDecisionSchema).optional(),
+	status: z.array(z.enum(["active", "paused"])).optional(),
+});
+export type ToolListQueryInput = z.infer<typeof toolListQuerySchema>;
+
+export const connectorListQuerySchema = tableQuerySchema.extend({
+	sort: z.enum(["name", "createdAt", "type", "provider", "status"]).optional(),
+	type: z.array(z.string()).optional(),
+	provider: z.array(z.string()).optional(),
+	status: z.array(z.enum(["active", "paused"])).optional(),
+});
+export type ConnectorListQueryInput = z.infer<typeof connectorListQuerySchema>;
 
 // ── Organization ─────────────────────────────────────────────
 export const updateOrganizationSchema = z.object({
@@ -162,4 +191,10 @@ export const agentRunJobPayloadSchema = z.object({
 
 export const toolExecutionJobPayloadSchema = z.object({
 	toolRequestId: z.string(),
+});
+
+// ── Test Run ──────────────────────────────────────────────
+export const testRunSchema = z.object({
+	agentId: z.string(),
+	message: z.string().trim().min(1),
 });

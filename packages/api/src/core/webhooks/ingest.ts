@@ -11,6 +11,7 @@ import { eq, and } from "drizzle-orm";
 import { randomUUID, createHash } from "node:crypto";
 import { verifyWebhookRequest } from "./verify";
 import { enqueueAgentRunJob, enqueueToolExecutionJob } from "../queues";
+import { publishRealtimeEvent } from "../realtime/publisher";
 
 interface IngestResult {
 	status: number;
@@ -142,6 +143,14 @@ export async function ingestWebhook(input: {
 						decidedAt: new Date(),
 					})
 					.where(eq(approvalSessions.id, session.id));
+				await publishRealtimeEvent({
+					type: "approval.decided",
+					organizationId: endpoint.organizationId,
+					runId: session.runId,
+					approvalId: session.id,
+					toolRequestId: session.toolRequestId,
+					status: "expired",
+				});
 
 				return {
 					status: endpoint.responseStatus,
@@ -173,6 +182,14 @@ export async function ingestWebhook(input: {
 					updatedAt: new Date(),
 				})
 				.where(eq(toolRequests.id, session.toolRequestId));
+			await publishRealtimeEvent({
+				type: "approval.decided",
+				organizationId: endpoint.organizationId,
+				runId: session.runId,
+				approvalId: session.id,
+				toolRequestId: session.toolRequestId,
+				status: newStatus as "approved" | "rejected",
+			});
 
 			await db.insert(auditLogs).values({
 				id: randomUUID(),
@@ -200,6 +217,12 @@ export async function ingestWebhook(input: {
 						updatedAt: new Date(),
 					})
 					.where(eq(agentRuns.id, session.runId));
+				await publishRealtimeEvent({
+					type: "run.updated",
+					organizationId: endpoint.organizationId,
+					runId: session.runId,
+					status: "rejected",
+				});
 			}
 
 			// Mark delivery as processed
@@ -240,6 +263,12 @@ export async function ingestWebhook(input: {
 		requesterMetadata,
 		inputMessage,
 		inputPayload: payload,
+	});
+	await publishRealtimeEvent({
+		type: "run.updated",
+		organizationId: endpoint.organizationId,
+		runId,
+		status: "queued",
 	});
 
 	// Mark delivery with run

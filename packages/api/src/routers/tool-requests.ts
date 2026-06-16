@@ -5,8 +5,9 @@ import { db } from "@agentclave/db";
 import { toolRequests, approvalSessions, auditLogs } from "@agentclave/db/schema/business";
 import { organizationProcedure } from "../index";
 import { throwNotFound } from "../core/errors";
-import { reviewApprovalSchema, tableQuerySchema } from "@agentclave/schemas";
+import { reviewApprovalSchema } from "@agentclave/schemas";
 import { enqueueToolExecutionJob } from "../core/queues";
+import { publishRealtimeEvent } from "../core/realtime/publisher";
 
 export const toolRequestsRouter = {
 	listByRunId: organizationProcedure
@@ -18,26 +19,6 @@ export const toolRequestsRouter = {
 				.from(toolRequests)
 				.where(and(eq(toolRequests.organizationId, orgId), eq(toolRequests.runId, input.runId)))
 				.orderBy(toolRequests.createdAt);
-		}),
-
-	listPendingApproval: organizationProcedure
-		.input(z.object({ runId: z.string().optional() }).merge(tableQuerySchema))
-		.handler(async ({ context, input }) => {
-			const orgId = context.activeOrganization!.id;
-			const conditions = [
-				eq(toolRequests.organizationId, orgId),
-				eq(toolRequests.status, "pending_approval"),
-			];
-			if (input.runId) {
-				conditions.push(eq(toolRequests.runId, input.runId));
-			}
-			return await db
-				.select()
-				.from(toolRequests)
-				.where(and(...conditions))
-				.orderBy(toolRequests.createdAt)
-				.limit(input.pageSize)
-				.offset((input.page - 1) * input.pageSize);
 		}),
 
 	getApprovalSession: organizationProcedure
@@ -122,6 +103,14 @@ export const toolRequestsRouter = {
 				targetId: session.id,
 				action: input.decision === "approved" ? "approval.approved" : "approval.rejected",
 				metadata: { note: input.note },
+			});
+			await publishRealtimeEvent({
+				type: "approval.decided",
+				organizationId: orgId,
+				runId: session.runId,
+				approvalId: session.id,
+				toolRequestId: session.toolRequestId,
+				status: newStatus as "approved" | "rejected",
 			});
 
 			if (input.decision === "approved") {

@@ -14,6 +14,7 @@
 		"@agentclave/types": "workspace:*",
 		"@agentclave/ui": "workspace:*",
 		"@tanstack/react-query": "catalog:",
+		"@tanstack/react-table": "^8.21.3",
 		"better-auth": "catalog:",
 		"lucide-react": "catalog:",
 		"nuqs": "^2.4.1",

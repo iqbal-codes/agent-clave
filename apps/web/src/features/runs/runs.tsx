@@ -1,20 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@agentclave/ui/components/card";
 import { Badge } from "@agentclave/ui/components/badge";
 import { Skeleton } from "@agentclave/ui/components/skeleton";
 import { Play, ArrowRight } from "lucide-react";
-
-interface Run {
-	id: string;
-	status: string;
-	inputMessage: string | null;
-	triggerSource: string | null;
-	totalLatencyMs: number | null;
-	totalCostCents: number | null;
-	createdAt: string;
-}
-
+import { rpcClient } from "../../runtime";
 const statusColors: Record<string, string> = {
 	queued: "secondary",
 	running: "default",
@@ -27,23 +17,57 @@ const statusColors: Record<string, string> = {
 };
 
 export function RunsPage() {
-	const { data: runs, isLoading } = useQuery({
-		queryKey: ["runs"],
+	const [searchParams, setSearchParams] = useSearchParams();
+	const statusFilter = searchParams.get("status") ?? undefined;
+
+	const { data, isLoading } = useQuery({
+		queryKey: ["runs", statusFilter],
 		queryFn: async () => {
-			const res = await fetch("/api/runs/list", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ page: 1, pageSize: 50 }),
-			});
-			return res.json() as Promise<Run[]>;
+			const body: Record<string, unknown> = { page: 1, pageSize: 50 };
+			if (statusFilter) {
+				body.status = statusFilter;
+			}
+			return rpcClient.runs.list(body as unknown as Parameters<typeof rpcClient.runs.list>[0]);
 		},
 	});
+	const runs = data?.items;
 
 	return (
 		<div className="space-y-6 p-6">
 			<div>
 				<h1 className="text-2xl font-bold">Runs</h1>
-				<p className="text-muted-foreground">View agent run history and status.</p>
+				<p className="text-muted-foreground">
+					View agent run history and open pending items for review.
+				</p>
+			</div>
+
+			<div className="flex gap-2">
+				<button
+					type="button"
+					onClick={() => {
+						setSearchParams({});
+					}}
+					className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+						!statusFilter
+							? "bg-primary text-primary-foreground"
+							: "bg-muted text-muted-foreground hover:bg-muted/80"
+					}`}
+				>
+					All runs
+				</button>
+				<button
+					type="button"
+					onClick={() => {
+						setSearchParams({ status: "waiting_for_approval" });
+					}}
+					className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+						statusFilter === "waiting_for_approval"
+							? "bg-primary text-primary-foreground"
+							: "bg-muted text-muted-foreground hover:bg-muted/80"
+					}`}
+				>
+					Pending review
+				</button>
 			</div>
 
 			{isLoading ? (

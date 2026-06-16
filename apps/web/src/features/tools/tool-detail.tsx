@@ -3,51 +3,18 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@agentclave/ui/components/card";
 import { Badge } from "@agentclave/ui/components/badge";
 import { Skeleton } from "@agentclave/ui/components/skeleton";
-
-interface ToolDetail {
-	id: string;
-	organizationId: string;
-	connectorId: string | null;
-	name: string;
-	description: string | null;
-	inputSchema: Record<string, unknown>;
-	outputSchema: Record<string, unknown>;
-	riskLevel: string;
-	executorType: string;
-	executorConfig: Record<string, unknown>;
-	defaultPolicy: string;
-	status: string;
-	createdAt: string;
-	updatedAt: string;
-}
-
+import { rpcClient } from "../../runtime";
 export function ToolDetailPage() {
 	const { id } = useParams<{ id: string }>();
 
-	const { data: tool, isLoading, error } = useQuery({
+	const {
+		data: tool,
+		isLoading,
+		error,
+	} = useQuery({
 		queryKey: ["tool", id],
-		queryFn: async (): Promise<ToolDetail | null> => {
-			const res = await fetch("/api/tools/getById", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ id }),
-			});
-			if (res.status === 404) {
-				return null;
-			}
-			if (!res.ok) {
-				let message = `Request failed with status ${res.status}`;
-				try {
-					const body = (await res.json()) as { message?: unknown };
-					if (typeof body?.message === "string") {
-						message = body.message;
-					}
-				} catch {
-					// Ignore JSON parse errors and keep the status-based message.
-				}
-				throw new Error(message);
-			}
-			return (await res.json()) as ToolDetail;
+		queryFn: async () => {
+			return rpcClient.tools.getById({ id: id! });
 		},
 		enabled: Boolean(id),
 	});
@@ -135,8 +102,7 @@ export function ToolDetailPage() {
 				</CardHeader>
 				<CardContent className="space-y-2">
 					<p className="text-sm">
-						<span className="font-medium">Connector ID:</span>{" "}
-						{tool.connectorId ?? "No connector"}
+						<span className="font-medium">Connector ID:</span> {tool.connectorId ?? "No connector"}
 					</p>
 					<p className="text-sm">
 						<span className="font-medium">Created:</span>{" "}

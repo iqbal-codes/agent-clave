@@ -23,14 +23,11 @@ import {
 	LayoutDashboard,
 	Bot,
 	Wrench,
-	Plug,
 	Settings,
 	ChevronsUpDown,
 	LogOut,
 	User,
 	Play,
-	CheckCircle,
-	ScrollText,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -42,15 +39,11 @@ const iconMap: Record<string, LucideIcon> = {
 	LayoutDashboard,
 	Bot,
 	Wrench,
-	Plug,
 	Settings,
 	Play,
-	CheckCircle,
-	ScrollText,
 };
 
 export function AppSidebar() {
-	const location = useLocation();
 	const navigate = useNavigate();
 	const { session, signOut } = useAuth();
 	const navItems = useSidebarNav();

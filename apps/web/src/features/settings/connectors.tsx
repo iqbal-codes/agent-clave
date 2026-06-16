@@ -5,23 +5,22 @@ import { DataTable } from "@agentclave/ui/components/table/data-table";
 import { DataTableToolbar } from "@agentclave/ui/components/table/data-table-toolbar";
 import { DataTableSkeleton } from "@agentclave/ui/components/table/data-table-skeleton";
 import { useDataTable } from "@agentclave/ui/hooks/use-data-table";
-import { toolsColumns, type Tool } from "./tools-columns";
+import { connectorsColumns, type Connector } from "./connectors-columns";
 import { rpcClient } from "../../runtime";
 import { Link } from "react-router-dom";
 import { Button } from "@agentclave/ui/components/button";
-const columnIds = toolsColumns
+const columnIds = connectorsColumns
 	.map((col) => ("accessorKey" in col ? (col.accessorKey as string) : undefined))
 	.filter(Boolean) as string[];
 
-export function ToolsPage() {
+export function ConnectorsPage() {
 	const [params] = useQueryStates({
 		page: parseAsInteger.withDefault(1),
 		perPage: parseAsInteger.withDefault(10),
-		sort: getSortingStateParser<Tool>(columnIds).withDefault([]),
+		sort: getSortingStateParser<Connector>(columnIds).withDefault([]),
 		name: parseAsString.withDefault(""),
-		riskLevel: parseAsArrayOf(parseAsString, ",").withDefault([]),
-		executorType: parseAsArrayOf(parseAsString, ",").withDefault([]),
-		defaultPolicy: parseAsArrayOf(parseAsString, ",").withDefault([]),
+		type: parseAsArrayOf(parseAsString, ",").withDefault([]),
+		provider: parseAsArrayOf(parseAsString, ",").withDefault([]),
 		status: parseAsArrayOf(parseAsString, ",").withDefault([]),
 	});
 
@@ -35,20 +34,21 @@ export function ToolsPage() {
 		body.sort = sort.id;
 		body.order = sort.desc ? "desc" : "asc";
 	}
-	if (params.riskLevel.length > 0) body.riskLevel = params.riskLevel;
-	if (params.executorType.length > 0) body.executorType = params.executorType;
-	if (params.defaultPolicy.length > 0) body.defaultPolicy = params.defaultPolicy;
+	if (params.type.length > 0) body.type = params.type;
+	if (params.provider.length > 0) body.provider = params.provider;
 	if (params.status.length > 0) body.status = params.status;
 
 	const { data, isLoading } = useQuery({
-		queryKey: ["tools", body],
+		queryKey: ["connectors", body],
 		queryFn: async () => {
-			return rpcClient.tools.list(body as unknown as Parameters<typeof rpcClient.tools.list>[0]);
+			return rpcClient.connectors.list(
+				body as unknown as Parameters<typeof rpcClient.connectors.list>[0],
+			);
 		},
 	});
 
 	const table = useDataTable({
-		columns: toolsColumns,
+		columns: connectorsColumns,
 		data: data?.items ?? [],
 		pageCount: data ? Math.ceil(data.total / params.perPage) : 0,
 		getRowId: (row) => row.id,
@@ -61,21 +61,21 @@ export function ToolsPage() {
 	});
 
 	return (
-		<div className="space-y-6 p-6">
+		<div className="space-y-6">
 			<div className="flex items-center justify-between">
 				<div>
-					<h1 className="text-3xl font-bold tracking-tight">Tools</h1>
+					<h1 className="text-3xl font-bold tracking-tight">Connectors</h1>
 					<p className="text-muted-foreground">
-						Configure tools that agents can invoke with governed execution.
+						Manage integrations with external services and APIs.
 					</p>
 				</div>
-				<Link to="/tools/new">
-					<Button>New Tool</Button>
+				<Link to="/settings/connectors/new">
+					<Button>New Connector</Button>
 				</Link>
 			</div>
 
 			{isLoading ? (
-				<DataTableSkeleton columnCount={6} filterCount={5} />
+				<DataTableSkeleton columnCount={4} filterCount={3} />
 			) : (
 				<DataTable table={table.table}>
 					<DataTableToolbar table={table.table} />

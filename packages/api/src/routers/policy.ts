@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@agentclave/db";
 import { policies } from "@agentclave/db/schema/business";
@@ -12,13 +12,22 @@ import {
 } from "@agentclave/schemas";
 
 export const policyRouter = {
-	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context }) => {
+	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context, input }) => {
 		const orgId = context.activeOrganization!.id;
-		return await db
+		const conditions = [eq(policies.organizationId, orgId)];
+		const [countResult] = await db
+			.select({ total: count() })
+			.from(policies)
+			.where(and(...conditions));
+		const total = Number(countResult?.total ?? 0);
+		const rows = await db
 			.select()
 			.from(policies)
-			.where(eq(policies.organizationId, orgId))
-			.orderBy(policies.priority);
+			.where(and(...conditions))
+			.orderBy(policies.priority)
+			.limit(input.pageSize)
+			.offset((input.page - 1) * input.pageSize);
+		return { items: rows, total: Number(total) };
 	}),
 
 	getById: organizationProcedure

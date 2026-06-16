@@ -9,21 +9,7 @@ import {
 	CardTitle,
 } from "@agentclave/ui/components/card";
 import { Bot, Play, CheckCircle, Wrench, AlertCircle, Clock } from "lucide-react";
-
-interface DashboardData {
-	totalRunsToday: number;
-	pendingApprovals: number;
-	activeAgents: number;
-	completedRunsToday: number;
-	failedRunsToday: number;
-	averageLatencyMs: number;
-	recentRuns: Array<{
-		id: string;
-		status: string;
-		inputMessage: string | null;
-		createdAt: string;
-	}>;
-}
+import { rpcClient } from "../../runtime";
 
 export function DashboardPage() {
 	const { organization, activeOrganization } = useOrganization();
@@ -31,12 +17,7 @@ export function DashboardPage() {
 	const { data: dashboard } = useQuery({
 		queryKey: ["dashboard", activeOrganization?.id],
 		queryFn: async () => {
-			const res = await fetch("/api/organization/getDashboard", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({}),
-			});
-			return res.json() as Promise<DashboardData>;
+			return rpcClient.organization.getDashboard({});
 		},
 		enabled: Boolean(activeOrganization?.id),
 	});

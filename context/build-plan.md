@@ -2,7 +2,9 @@
 
 ## Core principle
 
-Build the control plane in dependency order: domain vocabulary and persistence first, then webhook ingress, then worker pipeline, then approval/executor behavior, then product UI, then documentation/demo polish. Every phase must preserve the invariant that LLM output never mutates GitHub directly.
+Build the governed agent runtime in dependency order: domain vocabulary and persistence first, then webhook ingress, then worker pipeline, then approval and executor behavior, then product UI, then realtime and operational polish. Every phase must preserve the invariant that LLM output never executes a tool directly.
+
+The current product direction is **AgentClave**: a governed agent runtime for internal operations. The first working configuration is the Telegram Inventory Ops Agent. The runtime is generic over channels and integrations; the seed is specific.
 
 ## Phase 0 — Context and architecture foundation
 
@@ -18,297 +20,242 @@ Build the control plane in dependency order: domain vocabulary and persistence f
 
 **Status:** Complete.
 
-## Phase 1 — Domain model and vocabulary cutover
+## Phase 1 — Domain model and vocabulary cutover (pre-pivot)
 
-### 01.1 Shared vocabulary
+### 01.1 Shared vocabulary (pre-pivot)
 
-**Logic / Behavior:**
+**Deliverable:** `packages/types` and `packages/schemas` updated for the original RunGuard PRD; `github.add_label` and `github.post_comment` as action types, PRD run/action statuses, no compatibility aliases.
 
-- Update `packages/types` and `packages/schemas` to PRD action/status vocabulary.
-- Use `github.add_label` and `github.post_comment` as supported action types.
-- Use PRD proposed-action statuses.
-- Remove old starter action vocabulary, with no compatibility aliases.
+**Status:** Complete. Subsequently superseded by the AgentClave cutover (Phase 2.1).
 
-**Verification:** Typecheck packages that consume shared types/schemas.
+### 01.2 Database schema completion (pre-pivot)
 
-**Status:** Complete.
+**Deliverable:** Drizzle enums/tables for `proposed_actions`, `policy_rules`, `github_webhook_deliveries`, `agent_run_steps`, `approvals`, `eval_samples`.
 
-### 01.2 Database schema completion
+**Status:** Complete. The AgentClave pivot replaced `proposed_actions` → `tool_requests`, `policy_rules` → `policies`, `approvals` → `approval_sessions`, and added `connectors`, `webhook_endpoints`, `webhook_deliveries`, `tools`, `agent_tools`, `tool_executions`. The pre-pivot tables do not exist in the current `packages/db/src/schema/business.ts`.
 
-**Logic / Behavior:**
+### 01.3 Seed data alignment (pre-pivot)
 
-- Update Drizzle enums/tables for PRD vocabulary.
-- Add webhook delivery/idempotency storage.
-- Add `agent_run_steps`.
-- Add `approvals`.
-- Add `eval_samples`.
-- Expand `agent_runs`, `proposed_actions`, and `audit_logs` fields as needed for PRD behavior.
+**Deliverable:** RunGuard seed for the GitHub Issue Triage Agent and two policy rules.
 
-**Verification:** Drizzle schema generation/push path succeeds in local dev setup.
+**Status:** Complete. Superseded by the AgentClave seed in `packages/auth/src/seed.ts`.
 
-**Status:** Complete.
+## Phase 2 — AgentClave pivot: domain, infrastructure, services
 
-### 01.3 Seed data alignment
+### 02.1 Domain model and vocabulary cutover
 
-**Logic / Behavior:**
+**Deliverable:**
 
-- Seed GitHub Issue Triage Agent with allowed labels including priority labels `P1`, `P2`, `P3`.
-- Seed default policies:
-  - `github.add_label` → `require_approval`.
-  - `github.post_comment` → `require_approval`.
-  - unknown action → `deny` by engine fallback.
+- `packages/db/src/schema/business.ts` rewritten for the AgentClave vocabulary: `connectors`, `webhook_endpoints`, `webhook_deliveries`, `tools`, `agent_tools`, `agents`, `agent_runs`, `agent_run_steps`, `tool_requests`, `tool_executions`, `policies`, `approval_sessions`, `audit_logs`. Enums: `run_status`, `tool_request_status`, `risk_level`, `policy_decision`, `agent_status`, `approval_session_status`, `tool_executor_type`. Migrations updated to match.
+- `packages/types` and `packages/schemas` updated for the new vocabulary.
+- GitHub-era `proposed_actions` / `policy_rules` / `github.*` types removed; no compatibility aliases.
+- `apps/api/src/routers/{tools,connectors,tool-requests,policy,agents,runs,auditLogs}.ts` rewritten to operate on the new tables.
 
-**Verification:** New workspace seed creates the agent/settings/policies expected by UI and worker.
+**Verification:** Project-wide `vp check-types` passes; all routers, runtime, and worker load against the new schema.
 
 **Status:** Complete.
 
-## Phase 2 — Infrastructure and backend services
+### 02.2 Redis and BullMQ infrastructure
 
-### 02.1 Redis and BullMQ infrastructure
+**Deliverable:**
 
-**Logic / Behavior:**
+- Redis in `docker-compose.yml` (image `redis:7-alpine`, port 6379, healthcheck via `redis-cli ping`).
+- Queue names: `agentclave-agent-run` and `agentclave-tool-execution` (constants in `packages/types`).
+- Job payload schemas: `agentRunJobPayloadSchema` (`{ runId: string }`), `toolExecutionJobPayloadSchema` (`{ toolRequestId: string }`).
+- `packages/api/src/core/queues.ts` provides `createRedisConnection()` (IORedis with `maxRetriesPerRequest: null`) and lazy queue producers.
+- `apps/worker` package with two BullMQ workers.
 
-- Add Redis to `docker-compose.yml`.
-- Add BullMQ dependencies.
-- Add Redis env validation and `.env.example` entries.
-- Add queue names and shared job payload schemas.
-
-**Verification:** Worker can connect to Redis locally.
-
-**Status:** Complete.
-
-### 02.2 Worker app
-
-**Logic / Behavior:**
-
-- Add `apps/worker` package.
-- Start BullMQ workers for triage and GitHub executor queues.
-- Keep job handlers in shared backend service modules, not inline in process startup.
-  **Verification:** Worker starts without processing jobs and can register processors.
+**Verification:** Worker can connect to Redis locally and register processors.
 
 **Status:** Complete.
 
 ### 02.3 Core service modules
 
-**Logic / Behavior:**
+**Deliverable:** Services under `packages/api/src/core`:
 
-Add backend services under `packages/api/src/core` or focused subfolders:
+- `credentials.ts` — AES-256-GCM `encryptSecret` / `decryptSecret` keyed by `CREDENTIAL_ENCRYPTION_KEY`.
+- `json-schema/validate.ts` — Ajv-based input/output schema validation.
+- `policy/evaluate.ts` — policy engine that returns `allow` / `require_approval` / `deny` from a list of `PolicyRule`s.
+- `executors/http.ts` — HTTP executor with `{{input.x}}` / `{{connector.config.x}}` / `{{credentials.x}}` template variable resolution, idempotency header, timeout, credential redaction in stored request metadata.
+- `webhooks/ingest.ts` — custom webhook ingress with header-secret verification, dedup, Telegram approval-reply recognition, and run creation.
+- `runtime/process-agent-run.ts` — runtime loop with OpenRouter tool calling, schema validation, policy evaluation, allow / require_approval / deny, and audit/trace writes.
+- `jobs/process-agent-run.ts` and `jobs/process-tool-execution.ts` — worker entry points.
 
-- GitHub signature verifier.
-- GitHub App token/client factory.
-- GitHub issue normalizer.
-- OpenRouter triage client.
-- Triage output validator.
-- Proposed action builder.
-- Policy evaluator.
-- Trace writer.
-- Audit writer.
-- Eval sample writer.
-- Run status transition helper.
-  **Verification:** Unit tests cover pure services.
+**Verification:** Unit tests cover pure services; the runtime loop produces a run trace and tool requests end-to-end in the worker.
 
 **Status:** Complete.
 
-## Phase 3 — GitHub webhook ingress
+### 02.4 Demo Inventory API
 
-### 03.1 Webhook route
+**Deliverable:** `apps/demo-inventory-api` Hono server exposing `/products/search`, `/stock/:sku`, and `/stock-adjustments` for the seed inventory tools.
 
-**API / Surface:**
+**Verification:** `pnpm dev` in the package starts the server on port 4301; the seed tools resolve against it.
 
-- Add `POST /api/webhooks/github` to Hono API.
+**Status:** Complete.
 
-**Logic / Behavior:**
+## Phase 3 — Web app surfaces (AgentClave)
 
-- Read raw body.
-- Verify `x-hub-signature-256`.
-- Parse event and action.
-- Accept only `issues.opened` and `issues.edited`.
-- Persist delivery ID idempotently.
-- Create/reuse agent run.
-- Record trace/audit entries.
-- Enqueue triage job.
-- Return success without waiting for LLM.
-
-**Verification:** Integration test proves duplicate delivery does not create duplicate runs.
-
-### 03.2 GitHub installation and repository support
-
-**API / Surface:**
-
-- Complete GitHub installation/repository endpoints enough for configured repos.
-
-**Logic / Behavior:**
-
-- Store installation and repository metadata.
-- Do not store long-lived GitHub access tokens.
-
-**Verification:** API can resolve an installation/repository for a webhook issue event.
-
-## Phase 4 — Triage worker pipeline
-
-### 04.1 OpenRouter structured triage call
-
-**Logic / Behavior:**
-
-- Use OpenRouter Chat Completions.
-- Request strict JSON schema output for summary, labels, priority, confidence, draft comment, and reasoning summary.
-- Track model name, latency, token counts when available, and estimated cost.
-
-**Verification:** Unit/integration seam can run with deterministic test provider; runtime provider path is typed and validated.
-
-### 04.2 Output validation and proposed actions
-
-**Logic / Behavior:**
-
-- Validate JSON with Zod and product rules.
-- Deny labels outside allowed list.
-- Require non-empty safe draft comment when comment action is produced.
-- Convert labels/priority/comment into proposed actions.
-- Invalid output marks run failed and records trace/audit error.
-
-**Verification:** Unit tests cover invalid JSON, disallowed labels, bad confidence, empty comment, and valid output.
-
-### 04.3 Policy evaluation
-
-**Logic / Behavior:**
-
-- Evaluate every proposed action deterministically.
-- Deny unknown actions by default.
-- Deny disallowed labels.
-- Require approval for public-facing actions.
-- Store policy decision and matched rule.
-
-**Verification:** Unit tests cover allow, require approval, deny, unknown action, disallowed label.
-
-## Phase 5 — Approval and executor workflow
-
-### 05.1 Approval APIs
-
-**API / Surface:**
-
-- List pending approvals.
-- Approve an action.
-- Reject an action with reason/note.
-- Edit payload before approval.
-
-**Logic / Behavior:**
-
-- Enforce reviewer/admin permissions.
-- Write approval records.
-- Write eval samples.
-- Write audit logs.
-- Enqueue executor job for approved/edited actions.
-
-**Verification:** Integration test proves approval enqueues executor work without inline GitHub mutation.
-
-### 05.2 GitHub executor worker
-
-**Logic / Behavior:**
-
-- Confirm action is approved.
-- Mint GitHub installation token from env GitHub App credentials.
-- Execute `github.add_label` or `github.post_comment` through GitHub REST.
-- Mark action `executed` or `failed`.
-- Store execution result/error.
-- Update run status when all actions are terminal.
-- Write trace and audit logs.
-
-**Verification:** Unit tests cover payload validation and status transitions; integration seam covers executor job behavior.
-
-## Phase 6 — Product API completion
-
-### 06.1 Runs and traces
-
-**API / Surface:**
-
-- Runs list.
-- Run detail with normalized input, agent output, proposed actions, policy decisions, approvals, execution results, trace steps, audit snippets, cost, latency, errors.
-- Retry failed run if safe.
-
-### 06.2 Agents and policies
-
-**API / Surface:**
-
-- Agent list/detail/settings.
-- Agent status toggle.
-- Policy list/update.
-
-### 06.3 Audit and evals
-
-**API / Surface:**
-
-- Audit log list with filters.
-- Eval summary metrics.
-- Eval sample list.
-
-## Phase 7 — Web app surfaces
-
-### 07.1 Dashboard
+### 03.1 Dashboard
 
 **UI / Surface:**
 
-- Active agent status.
-- Runs today.
-- Pending approvals.
-- Approval rate.
-- Rejection rate.
-- Average latency.
-- Estimated cost today.
+- `apps/web/src/features/dashboard/dashboard.tsx` as a navigation hub.
+- Real metrics (runs today, approval rate, cost today) deferred; cards are placeholders.
 
-### 07.2 Agents and agent detail
+**Status:** Complete.
+
+### 03.2 Agents and agent detail
 
 **UI / Surface:**
 
-- Agents list with the GitHub Issue Triage Agent.
-- Agent detail tabs: Overview, Runs, Policies, Settings.
-- Admin settings for status, prompt, model, allowed labels, daily budget.
+- `apps/web/src/features/agents/agents.tsx` lists agents.
+- `apps/web/src/features/agents/agent-detail.tsx` shows overview cards.
+- Edit/create forms and bind/unbind tools deferred to Phase 9.
 
-### 07.3 Runs and run detail
+**Status:** Complete (read-only).
 
-**UI / Surface:**
-
-- Runs table.
-- Run detail as primary inspection screen with trace timeline, issue metadata, normalized input, agent output, proposed actions, policy decisions, approvals, execution results, cost/latency, and errors.
-
-### 07.4 Approval queue
+### 03.3 Tools and tool detail
 
 **UI / Surface:**
 
-- Pending approval cards.
-- Approve/reject/edit controls.
-- Rejection reason and reviewer note.
+- `apps/web/src/features/tools/tools.tsx` lists tools as a card grid (later migrated to `DataTable` in Phase 8).
+- `apps/web/src/features/tools/tool-detail.tsx` shows the read-only summary (status, risk, executor, default policy, configuration, input/output schema, executor config).
+- Edit/create forms deferred to Phase 9.
 
-### 07.5 Audit logs and evals
+**Status:** Complete (read-only).
+
+### 03.4 Runs and run detail
 
 **UI / Surface:**
 
-- Audit table with filters.
-- Evals summary and recent samples.
+- `apps/web/src/features/runs/runs.tsx` lists runs as a card grid (later migrated to a `DataTable` in Phase 8).
+- `apps/web/src/features/runs/run-detail.tsx` shows the read-only primary inspection screen: status, input, final response, step timeline, tool requests, **pending review requests** (placeholder, no Approve/Reject yet), **approval sessions** history, **audit log** snippet, and error block.
 
-## Phase 8 — Verification, docs, and demo flow
+**Status:** Complete (read-only).
 
-### 08.1 Test coverage
+### 03.5 Settings — Organization and Connectors
 
-- Unit tests for signature verification, output validation, action building, policy evaluation.
-- Integration tests for duplicate webhook delivery and approval-to-executor enqueue.
-- UI smoke path for approval flow if dev services are runnable.
+**UI / Surface:**
 
-### 08.2 Final docs/demo
+- `apps/web/src/components/layout/settings-layout.tsx` introduces the settings shell with `Tabs` (Organization / Connectors).
+- `apps/web/src/features/settings/organization.tsx` shows the workspace profile with a single edit form.
+- `apps/web/src/features/settings/connectors.tsx` lists connectors (later migrated to `DataTable` in Phase 8).
+- Connector detail page and webhook endpoint management deferred to Phase 9.
 
-- Update context/progress files after each feature.
-- Keep architecture and library docs synced with actual implementation.
-- Produce README/demo flow after the working MVP path exists.
+**Status:** Complete (organization edit form only; connectors are read-only).
+
+## Phase 4 — Features-based architecture refactor
+
+**Deliverable:**
+
+- `apps/web/src/features/` directory with per-feature folders.
+- `pages/` reduced to thin re-export shims.
+- `auth-form-layout` moved from `components/auth/` to `features/auth/`.
+- All imports updated; `vp fmt` applied; `check-types` passes.
+
+**Verification:** Zero new lint/type errors in `apps/web/`.
+
+**Status:** Complete.
+
+## Phase 5 — Compact navigation, paginated lists, and approval-on-run-detail
+
+**Deliverable:**
+
+- `paginatedListSchema` helper and route-specific query schemas in `packages/schemas` (`runListQuerySchema`, `toolListQuerySchema`, `connectorListQuerySchema`).
+- All list procedures return `{ items, total }` with `count()` queries.
+- Server-side filtering on tools (`search`, `riskLevel`, `executorType`, `defaultPolicy`, `status`), connectors (`search`, `type`, `provider`, `status`), and runs (`status`).
+- Sidebar compacted to five items: Dashboard, Agents, Tools, Runs, Settings.
+- `SettingsLayout` with tabs for Organization and Connectors.
+- Connectors moved to `/settings/connectors`.
+- Standalone `/approvals` and `/audit` routes removed; their content lives on run detail.
+- Run detail absorbs the approval history card, the pending review requests block, and the audit log snippet.
+- `tools-columns.tsx` and `connectors-columns.tsx` introduced; Tools and Connectors pages migrated to `DataTable`.
+- Runs page gains an "All runs" / "Pending review" toggle.
+
+**Verification:** Project-wide `check-types` passes; all callers updated for the paginated response shape.
+
+**Status:** Complete.
+
+## Phase 6 — API and runtime gaps
+
+**Deliverable (planned):**
+
+- 06.1 Connector detail and webhook endpoint management (routers exist; UI deferred to Phase 9).
+- 06.2 Approval session history is read-only on run detail; inline Approve / Reject deferred to Phase 9.
+- 06.3 Agent / tool / connector create and edit routers exist; UI deferred to Phase 9.
+- 06.4 `agents.testRun` and `realtime.subscribe` procedures (Phase 9).
+
+**Status:** In progress (routers complete; UI is Phase 9).
+
+## Phase 7 — Realtime pipeline and connection state
+
+**Deliverable:**
+
+- 07.1 Add `@orpc/experimental-publisher` to the workspace catalog.
+- 07.2 `packages/api/src/core/realtime/publisher.ts` exposes a singleton `RedisPublisher<RunEvents, ApprovalEvents>` with two ioredis connections (commander + listener).
+- 07.3 Publish `run.updated` at every status change in the runtime and worker; publish `approval.pending` whenever a tool request requires approval.
+- 07.4 `packages/api/src/routers/realtime.ts` exposes a `realtime.subscribe` oRPC procedure that returns an `async function*` generator filtered by `context.activeOrganization.id`.
+- 07.5 `apps/web/src/components/realtime/{use-realtime.ts,connection-badge.tsx}` exposes a `useRealtimeSubscription` hook and a header badge.
+- 07.6 `RunsPage`, `ApprovalsPage` (on run detail), and `RunDetailPage` consume the subscription; `RunDetailPage` uses `setQueryData` to merge status in place; the others invalidate the matching query keys.
+
+**Verification:** Manually drive a run with `agents.testRun` and watch the badge go green, the runs list update on status change, and the run detail page merge the new step without a refetch flicker.
+
+**Status:** Phase 9 in the merged sequence below.
+
+## Phase 8 — Web app mutation surfaces and Test run trigger
+
+**Deliverable:**
+
+- 08.1 Migration of all read pages to the typed `orpc` client (deferred from Phase 6).
+- 08.2 Create flows for agents, tools, and connectors on dedicated routes (`/agents/new`, `/tools/new`, `/connectors/new`).
+- 08.3 Edit sheets on `/agents/:id`, `/tools/:id`, `/connectors/:id` for the same records.
+- 08.4 Connector detail at `/settings/connectors/:id` with a webhook endpoints list, "New endpoint" sheet, "Rotate secret" and "Delete" alert dialogs.
+- 08.5 "Test run" card on the agent detail page calling `agents.testRun` and navigating to the new run detail.
+- 08.6 "Tools" tab on the agent detail page (bind/unbind) backed by `agents.listTools`, `tools.bindToAgent`, and `tools.unbindFromAgent`.
+- 08.7 "Policies" tab on the agent detail page (read-only, joined from `policy.list`).
+- 08.8 Inline Approve / Reject on the run detail page's **pending review requests** card calling `toolRequests.reviewApproval`.
+
+**Verification:** End-to-end: sign in → open Inventory Ops Agent → Test run with a message → run goes to `waiting_for_approval` → Approve inline → run completes → audit log grows.
+
+**Status:** Phase 9 in the merged sequence below.
+
+## Phase 9 — MVP UI surface completion + realtime (this round)
+
+This phase bundles Phases 7 and 8 above and the deferred work from Phase 6 into a single delivery. It is the gap-closing round described in `context/progress-tracker.md`.
+
+**Deliverable (full list):**
+
+- Add `@orpc/experimental-publisher` to the catalog and wire a singleton `RedisPublisher` in `packages/api/src/core/realtime/publisher.ts`.
+- Add `realtime.subscribe` oRPC procedure in `packages/api/src/routers/realtime.ts` filtered by `organizationId`.
+- Publish `run.updated` and `approval.pending` from the runtime loop, the worker, the `reviewApproval` handler, and the `agents.testRun` handler.
+- Add `agents.testRun({ agentId, message })` in `packages/api/src/routers/agents.ts`.
+- Migrate read pages (`agents`, `tools`, `connectors`, `agent-detail`, `tool-detail`, `runs`, `run-detail`, `audit`) to the typed `orpc` client.
+- Add `/agents/new`, `/tools/new`, `/connectors/new` routes with `useAppForm` + shared Zod schemas.
+- Add edit sheets on `/agents/:id`, `/tools/:id`, `/connectors/:id`.
+- Add `/settings/connectors/:id` with the webhook endpoints list, "New endpoint" sheet, "Rotate secret" and "Delete" alert dialogs.
+- Add the "Test run" card on `/agents/:id`.
+- Add the "Tools" tab (bind/unbind) and the "Policies" tab (read-only) on `/agents/:id`.
+- Add inline Approve / Reject on the run detail page's pending review requests card.
+- Add a `useRealtimeSubscription` hook in `apps/web/src/components/realtime/` and a connection-state badge in the sticky header.
+- Subscribe on `RunsPage`, the run detail's pending review block, and `RunDetailPage`.
+- Make the seed guard on `TELEGRAM_BOT_TOKEN`: when the env var is empty, the Telegram connector, the `telegram.send_message` tool, and the inbound webhook endpoint are not inserted.
+
+**Verification:**
+
+- Project-wide `vp check-types` passes.
+- End-to-end: sign in → agent detail → Test run → live status changes visible in the runs list and the run detail page → inline Approve on the run detail page → run completes → audit log grows.
+- The `Live` badge in the header reads `Live` while subscribed and `Reconnecting`/`Offline` when the SSE is closed.
+
+**Status:** This round.
 
 ## Feature count
 
-| Phase                                         | Feature groups |
-| --------------------------------------------- | -------------: |
-| Phase 0 — Context and architecture foundation |              2 |
-| Phase 1 — Domain model and vocabulary cutover |              3 |
-| Phase 2 — Infrastructure and backend services |              3 |
-| Phase 3 — GitHub webhook ingress              |              2 |
-| Phase 4 — Triage worker pipeline              |              3 |
-| Phase 5 — Approval and executor workflow      |              2 |
-| Phase 6 — Product API completion              |              3 |
-| Phase 7 — Web app surfaces                    |              5 |
-| Phase 8 — Verification, docs, and demo flow   |              2 |
+| Phase                                                                 | Feature groups |
+| --------------------------------------------------------------------- | -------------: |
+| Phase 0 — Context and architecture foundation                         |              2 |
+| Phase 1 — Domain model and vocabulary cutover (pre-pivot)             |              3 |
+| Phase 2 — AgentClave pivot: domain, infrastructure, services          |              4 |
+| Phase 3 — Web app surfaces (AgentClave)                               |              5 |
+| Phase 4 — Features-based architecture refactor                        |              1 |
+| Phase 5 — Compact navigation, paginated lists, approval on run detail |              3 |
+| Phase 9 — MVP UI surface completion + realtime (this round)           |              6 |

@@ -1,9 +1,18 @@
 import { db } from "@agentclave/db";
-import { toolRequests, tools, connectors, toolExecutions } from "@agentclave/db/schema/business";
+import {
+	toolRequests,
+	tools,
+	connectors,
+	toolExecutions,
+	agentRuns,
+} from "@agentclave/db/schema/business";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { decryptSecret } from "../credentials";
 import { validateJsonSchemaPayload } from "../json-schema/validate";
+import { writeRunStep } from "../traces";
+import { writeAudit } from "../audit";
+import { publishRealtimeEvent } from "../realtime/publisher";
 
 interface ConnectorCredentials {
 	[key: string]: string;
@@ -194,6 +203,48 @@ export async function executeHttpRequest(input: { toolRequestId: string }): Prom
 					updatedAt: new Date(),
 				})
 				.where(eq(toolRequests.id, toolRequestId));
+			// Terminalize parent run if it was waiting_for_approval
+			{
+				const [run] = await db
+					.select()
+					.from(agentRuns)
+					.where(eq(agentRuns.id, toolRequest.runId))
+					.limit(1);
+				if (run?.status === "waiting_for_approval") {
+					const errorMsg = `Tool execution failed: HTTP ${response.status} ${response.statusText}`;
+					await db
+						.update(agentRuns)
+						.set({
+							status: "failed",
+							errorMessage: errorMsg,
+							completedAt: new Date(),
+							updatedAt: new Date(),
+						})
+						.where(eq(agentRuns.id, toolRequest.runId));
+					await writeRunStep({
+						runId: toolRequest.runId,
+						type: "run_failed",
+						status: "failed",
+						errorMetadata: { source: "approved_tool_execution", toolRequestId, error: errorMsg },
+					});
+					await writeAudit({
+						organizationId: toolRequest.organizationId,
+						actorType: "system",
+						actorId: "executor",
+						runId: toolRequest.runId,
+						targetType: "agent_run",
+						targetId: toolRequest.runId,
+						action: "run.failed_after_approval",
+						metadata: { toolRequestId },
+					});
+					await publishRealtimeEvent({
+						type: "run.updated",
+						organizationId: toolRequest.organizationId,
+						runId: toolRequest.runId,
+						status: "failed",
+					});
+				}
+			}
 
 			return;
 		}
@@ -217,6 +268,42 @@ export async function executeHttpRequest(input: { toolRequestId: string }): Prom
 				updatedAt: new Date(),
 			})
 			.where(eq(toolRequests.id, toolRequestId));
+		// Terminalize parent run if it was waiting_for_approval
+		{
+			const [run] = await db
+				.select()
+				.from(agentRuns)
+				.where(eq(agentRuns.id, toolRequest.runId))
+				.limit(1);
+			if (run?.status === "waiting_for_approval") {
+				await db
+					.update(agentRuns)
+					.set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
+					.where(eq(agentRuns.id, toolRequest.runId));
+				await writeRunStep({
+					runId: toolRequest.runId,
+					type: "run_completed",
+					status: "completed",
+					outputMetadata: { source: "approved_tool_execution", toolRequestId },
+				});
+				await writeAudit({
+					organizationId: toolRequest.organizationId,
+					actorType: "system",
+					actorId: "executor",
+					runId: toolRequest.runId,
+					targetType: "agent_run",
+					targetId: toolRequest.runId,
+					action: "run.completed_after_approval",
+					metadata: { toolRequestId },
+				});
+				await publishRealtimeEvent({
+					type: "run.updated",
+					organizationId: toolRequest.organizationId,
+					runId: toolRequest.runId,
+					status: "completed",
+				});
+			}
+		}
 	} catch (error) {
 		const latencyMs = Date.now() - startTime;
 		const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -239,5 +326,41 @@ export async function executeHttpRequest(input: { toolRequestId: string }): Prom
 				updatedAt: new Date(),
 			})
 			.where(eq(toolRequests.id, toolRequestId));
+		// Terminalize parent run if it was waiting_for_approval
+		{
+			const [run] = await db
+				.select()
+				.from(agentRuns)
+				.where(eq(agentRuns.id, toolRequest.runId))
+				.limit(1);
+			if (run?.status === "waiting_for_approval") {
+				await db
+					.update(agentRuns)
+					.set({ status: "failed", errorMessage, completedAt: new Date(), updatedAt: new Date() })
+					.where(eq(agentRuns.id, toolRequest.runId));
+				await writeRunStep({
+					runId: toolRequest.runId,
+					type: "run_failed",
+					status: "failed",
+					errorMetadata: { source: "approved_tool_execution", toolRequestId, error: errorMessage },
+				});
+				await writeAudit({
+					organizationId: toolRequest.organizationId,
+					actorType: "system",
+					actorId: "executor",
+					runId: toolRequest.runId,
+					targetType: "agent_run",
+					targetId: toolRequest.runId,
+					action: "run.failed_after_approval",
+					metadata: { toolRequestId },
+				});
+				await publishRealtimeEvent({
+					type: "run.updated",
+					organizationId: toolRequest.organizationId,
+					runId: toolRequest.runId,
+					status: "failed",
+				});
+			}
+		}
 	}
 }
