@@ -1,5 +1,12 @@
 # Progress Tracker
 
+## Tool detail page fix
+
+- [x] `/tools/:id` route added in `apps/web/src/App.tsx` rendering new `ToolDetailPage`.
+- [x] `apps/web/src/pages/tool-detail.tsx` created from raw `tools.getById` payload (no backend changes).
+- [x] Summary cards (status, risk, executor, default policy), configuration card, and three JSON cards (input/output schema, executor config).
+- [x] `Tool not found` fallback for missing/404 tools, destructive card on fetch errors.
+- [x] Project-wide `check-types` passes.
 ## Current status
 
 **Phase:** AgentClave Pivot — Complete

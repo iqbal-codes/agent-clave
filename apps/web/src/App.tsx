@@ -7,6 +7,7 @@ import { DashboardPage } from "./pages/dashboard";
 import { AgentsPage } from "./pages/agents";
 import { AgentDetailPage } from "./pages/agent-detail";
 import { ToolsPage } from "./pages/tools";
+import { ToolDetailPage } from "./pages/tool-detail";
 import { ConnectorsPage } from "./pages/connectors";
 import { RunsPage } from "./pages/runs";
 import { RunDetailPage } from "./pages/run-detail";
@@ -27,6 +28,7 @@ export function App() {
 						<Route path="/agents" element={<AgentsPage />} />
 						<Route path="/agents/:id" element={<AgentDetailPage />} />
 						<Route path="/tools" element={<ToolsPage />} />
+						<Route path="/tools/:id" element={<ToolDetailPage />} />
 						<Route path="/connectors" element={<ConnectorsPage />} />
 						<Route path="/runs" element={<RunsPage />} />
 						<Route path="/runs/:id" element={<RunDetailPage />} />
