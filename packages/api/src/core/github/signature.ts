@@ -18,9 +18,7 @@ export function verifyGitHubSignature(
 	}
 
 	const bodyBuffer =
-		typeof rawBody === "string"
-			? Buffer.from(rawBody, "utf-8")
-			: Buffer.from(rawBody);
+		typeof rawBody === "string" ? Buffer.from(rawBody, "utf-8") : Buffer.from(rawBody);
 
 	const hmac = createHmac(ALGORITHM, secret);
 	hmac.update(bodyBuffer);

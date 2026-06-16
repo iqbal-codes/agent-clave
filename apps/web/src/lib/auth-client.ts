@@ -9,5 +9,3 @@ export const authClient = createAuthClient({
 	baseURL: API_URL,
 	plugins: [organizationClient()],
 });
-
-

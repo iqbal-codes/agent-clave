@@ -8,18 +8,18 @@
 		"dev": "node --import tsx src/index.ts"
 	},
 	"dependencies": {
-		"@hono/node-server": "^2.0.4",
 		"@agentclave/api": "workspace:*",
 		"@agentclave/auth": "workspace:*",
 		"@agentclave/db": "workspace:*",
 		"@agentclave/env": "workspace:*",
+		"@aws-sdk/client-s3": "catalog:",
+		"@hono/node-server": "^2.0.4",
 		"@orpc/openapi": "catalog:",
 		"@orpc/server": "catalog:",
 		"@orpc/zod": "catalog:",
-		"@aws-sdk/client-s3": "catalog:",
 		"better-auth": "catalog:",
-		"hono": "catalog:",
 		"drizzle-orm": "catalog:",
+		"hono": "catalog:",
 		"zod": "catalog:"
 	},
 	"devDependencies": {

@@ -19,7 +19,10 @@ export function encryptSecret(value: unknown, encryptionKey: string): string {
 	return `v1:${iv.toString("base64")}:${tag.toString("base64")}:${encrypted.toString("base64")}`;
 }
 
-export function decryptSecret<T = Record<string, unknown>>(encrypted: string | null, encryptionKey: string): T | null {
+export function decryptSecret<T = Record<string, unknown>>(
+	encrypted: string | null,
+	encryptionKey: string,
+): T | null {
 	if (!encrypted) return null;
 
 	const parts = encrypted.split(":");

@@ -5,29 +5,27 @@ import { db } from "@agentclave/db";
 import { policies } from "@agentclave/db/schema/business";
 import { organizationProcedure } from "../index";
 import { throwNotFound } from "../core/errors";
-import { createPolicyRuleSchema, updatePolicyRuleSchema, tableQuerySchema } from "@agentclave/schemas";
+import {
+	createPolicyRuleSchema,
+	updatePolicyRuleSchema,
+	tableQuerySchema,
+} from "@agentclave/schemas";
 
 export const policyRouter = {
-	list: organizationProcedure
-		.input(tableQuerySchema)
-		.handler(async ({ context }) => {
-			const orgId = context.activeOrganization!.id;
-			return await db
-				.select()
-				.from(policies)
-				.where(eq(policies.organizationId, orgId))
-				.orderBy(policies.priority);
-		}),
+	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context }) => {
+		const orgId = context.activeOrganization!.id;
+		return await db
+			.select()
+			.from(policies)
+			.where(eq(policies.organizationId, orgId))
+			.orderBy(policies.priority);
+	}),
 
 	getById: organizationProcedure
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
-			const [policy] = await db
-				.select()
-				.from(policies)
-				.where(eq(policies.id, input.id))
-				.limit(1);
+			const [policy] = await db.select().from(policies).where(eq(policies.id, input.id)).limit(1);
 			if (!policy || policy.organizationId !== orgId) {
 				throwNotFound("Policy");
 			}
@@ -52,11 +50,7 @@ export const policyRouter = {
 				priority: input.priority ?? 0,
 				createdBy: userId,
 			});
-			const [created] = await db
-				.select()
-				.from(policies)
-				.where(eq(policies.id, id))
-				.limit(1);
+			const [created] = await db.select().from(policies).where(eq(policies.id, id)).limit(1);
 			return created;
 		}),
 
@@ -65,11 +59,7 @@ export const policyRouter = {
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
 			const { id, enabled, ...rest } = input;
-			const [existing] = await db
-				.select()
-				.from(policies)
-				.where(eq(policies.id, id))
-				.limit(1);
+			const [existing] = await db.select().from(policies).where(eq(policies.id, id)).limit(1);
 			if (!existing || existing.organizationId !== orgId) {
 				throwNotFound("Policy");
 			}
@@ -78,11 +68,7 @@ export const policyRouter = {
 				updateData.enabled = enabled;
 			}
 			await db.update(policies).set(updateData).where(eq(policies.id, id));
-			const [updated] = await db
-				.select()
-				.from(policies)
-				.where(eq(policies.id, id))
-				.limit(1);
+			const [updated] = await db.select().from(policies).where(eq(policies.id, id)).limit(1);
 			return updated;
 		}),
 
@@ -90,11 +76,7 @@ export const policyRouter = {
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
-			const [existing] = await db
-				.select()
-				.from(policies)
-				.where(eq(policies.id, input.id))
-				.limit(1);
+			const [existing] = await db.select().from(policies).where(eq(policies.id, input.id)).limit(1);
 			if (!existing || existing.organizationId !== orgId) {
 				throwNotFound("Policy");
 			}

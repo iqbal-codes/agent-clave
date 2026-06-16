@@ -47,11 +47,13 @@ describe("createToolSchema", () => {
 	});
 
 	it("rejects missing executorType", () => {
-		expect(() => createToolSchema.parse({
-			name: "test",
-			inputSchema: {},
-			outputSchema: {},
-		})).toThrow();
+		expect(() =>
+			createToolSchema.parse({
+				name: "test",
+				inputSchema: {},
+				outputSchema: {},
+			}),
+		).toThrow();
 	});
 });
 
@@ -86,10 +88,12 @@ describe("reviewApprovalSchema", () => {
 	});
 
 	it("rejects invalid decision", () => {
-		expect(() => reviewApprovalSchema.parse({
-			approvalId: "test-id",
-			decision: "edited",
-		})).toThrow();
+		expect(() =>
+			reviewApprovalSchema.parse({
+				approvalId: "test-id",
+				decision: "edited",
+			}),
+		).toThrow();
 	});
 });
 
@@ -118,10 +122,12 @@ describe("createPolicyRuleSchema", () => {
 	});
 
 	it("rejects invalid effect", () => {
-		expect(() => createPolicyRuleSchema.parse({
-			name: "test",
-			effect: "approve",
-		})).toThrow();
+		expect(() =>
+			createPolicyRuleSchema.parse({
+				name: "test",
+				effect: "approve",
+			}),
+		).toThrow();
 	});
 });
 

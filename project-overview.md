@@ -139,11 +139,11 @@ AI agent menghasilkan:
 
 ```json
 {
-  "summary": "Safari users are unable to click the checkout button, blocking payment completion.",
-  "labels": ["bug", "frontend"],
-  "priority": "P1",
-  "confidence": 0.91,
-  "draftComment": "Thanks for reporting this. We are triaging the Safari checkout issue and will investigate the frontend checkout flow."
+	"summary": "Safari users are unable to click the checkout button, blocking payment completion.",
+	"labels": ["bug", "frontend"],
+	"priority": "P1",
+	"confidence": 0.91,
+	"draftComment": "Thanks for reporting this. We are triaging the Safari checkout issue and will investigate the frontend checkout flow."
 }
 ```
 
@@ -350,20 +350,20 @@ Contoh rule:
 
 ```json
 {
-  "action": "github.add_label",
-  "effect": "require_approval",
-  "conditions": {
-    "allowedLabels": [
-      "bug",
-      "frontend",
-      "backend",
-      "documentation",
-      "needs-triage",
-      "P1",
-      "P2",
-      "P3"
-    ]
-  }
+	"action": "github.add_label",
+	"effect": "require_approval",
+	"conditions": {
+		"allowedLabels": [
+			"bug",
+			"frontend",
+			"backend",
+			"documentation",
+			"needs-triage",
+			"P1",
+			"P2",
+			"P3"
+		]
+	}
 }
 ```
 

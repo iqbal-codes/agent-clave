@@ -4,9 +4,7 @@ import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { executeHttpRequest } from "./http";
 
-export async function executeToolRequest(input: {
-	toolRequestId: string;
-}): Promise<void> {
+export async function executeToolRequest(input: { toolRequestId: string }): Promise<void> {
 	const { toolRequestId } = input;
 
 	const [toolRequest] = await db
@@ -19,32 +17,34 @@ export async function executeToolRequest(input: {
 		throw new Error(`Tool request not found: ${toolRequestId}`);
 	}
 
-	const [tool] = await db
-		.select()
-		.from(tools)
-		.where(eq(tools.id, toolRequest.toolId))
-		.limit(1);
+	const [tool] = await db.select().from(tools).where(eq(tools.id, toolRequest.toolId)).limit(1);
 
 	if (!tool) {
 		throw new Error(`Tool not found: ${toolRequest.toolId}`);
 	}
 
 	// Mark as executing
-	await db.update(toolRequests).set({
-		status: "executing",
-		updatedAt: new Date(),
-	}).where(eq(toolRequests.id, toolRequestId));
+	await db
+		.update(toolRequests)
+		.set({
+			status: "executing",
+			updatedAt: new Date(),
+		})
+		.where(eq(toolRequests.id, toolRequestId));
 
 	try {
 		if (tool.executorType === "http") {
 			await executeHttpRequest({ toolRequestId });
 		} else {
 			// Unknown executor type
-			await db.update(toolRequests).set({
-				status: "failed",
-				completedAt: new Date(),
-				updatedAt: new Date(),
-			}).where(eq(toolRequests.id, toolRequestId));
+			await db
+				.update(toolRequests)
+				.set({
+					status: "failed",
+					completedAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.where(eq(toolRequests.id, toolRequestId));
 
 			await db.insert(auditLogs).values({
 				id: randomUUID(),
@@ -61,11 +61,14 @@ export async function executeToolRequest(input: {
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-		await db.update(toolRequests).set({
-			status: "failed",
-			completedAt: new Date(),
-			updatedAt: new Date(),
-		}).where(eq(toolRequests.id, toolRequestId));
+		await db
+			.update(toolRequests)
+			.set({
+				status: "failed",
+				completedAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.where(eq(toolRequests.id, toolRequestId));
 
 		await db.insert(auditLogs).values({
 			id: randomUUID(),
@@ -81,9 +84,7 @@ export async function executeToolRequest(input: {
 	}
 }
 
-export async function executeApprovedToolRequest(input: {
-	toolRequestId: string;
-}): Promise<void> {
+export async function executeApprovedToolRequest(input: { toolRequestId: string }): Promise<void> {
 	const { toolRequestId } = input;
 
 	const [toolRequest] = await db

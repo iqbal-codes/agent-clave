@@ -1,19 +1,19 @@
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./providers/auth-provider";
 import { ProtectedRoute } from "./components/protected-route";
-import { SignInPage } from "./pages/auth/sign-in";
-import { SignUpPage } from "./pages/auth/sign-up";
-import { DashboardPage } from "./pages/dashboard";
-import { AgentsPage } from "./pages/agents";
-import { AgentDetailPage } from "./pages/agent-detail";
-import { ToolsPage } from "./pages/tools";
-import { ToolDetailPage } from "./pages/tool-detail";
-import { ConnectorsPage } from "./pages/connectors";
-import { RunsPage } from "./pages/runs";
-import { RunDetailPage } from "./pages/run-detail";
-import { ApprovalsPage } from "./pages/approvals";
-import { AuditPage } from "./pages/audit";
-import { SettingsOrganizationPage } from "./pages/settings/organization";
+import { SignInPage } from "./features/auth/sign-in";
+import { SignUpPage } from "./features/auth/sign-up";
+import { DashboardPage } from "./features/dashboard/dashboard";
+import { AgentsPage } from "./features/agents/agents";
+import { AgentDetailPage } from "./features/agents/agent-detail";
+import { ToolsPage } from "./features/tools/tools";
+import { ToolDetailPage } from "./features/tools/tool-detail";
+import { ConnectorsPage } from "./features/connectors/connectors";
+import { RunsPage } from "./features/runs/runs";
+import { RunDetailPage } from "./features/runs/run-detail";
+import { ApprovalsPage } from "./features/approvals/approvals";
+import { AuditPage } from "./features/audit/audit";
+import { SettingsOrganizationPage } from "./features/settings/organization";
 import { DashboardLayout } from "./components/layout/dashboard-layout";
 
 export function App() {

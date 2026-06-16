@@ -8,8 +8,8 @@
 		"dev": "node --import tsx src/index.ts"
 	},
 	"dependencies": {
-		"hono": "catalog:",
-		"@hono/node-server": "^2.0.4"
+		"@hono/node-server": "^2.0.4",
+		"hono": "catalog:"
 	},
 	"devDependencies": {
 		"@agentclave/config": "workspace:*",

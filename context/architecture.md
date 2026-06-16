@@ -2,18 +2,18 @@
 
 ## Current stack
 
-| Layer | Tooling | Purpose |
-| --- | --- | --- |
-| Package manager | pnpm workspace | Owns `apps/*` and `packages/*` workspaces. |
-| Task runner | vite-plus (`vp`) | Build, typecheck, format/lint, and workspace dev orchestration. |
-| Frontend | Vite + React 19 + React Router | Dashboard app in `apps/web`. |
-| API server | Hono + oRPC | HTTP server in `apps/api`; type-safe API routers in `packages/api`. |
-| Auth | Better Auth + Organization plugin | Email/password auth, OAuth providers, organizations, members, roles. |
-| Database | PostgreSQL + Drizzle ORM | Domain and auth persistence in `packages/db`. |
-| UI package | `@agentclave/ui` | Shared shadcn/Base UI-derived primitives, styles, forms, tables. |
-| Background jobs | BullMQ + Redis | Target queue system for webhook-triggered agent execution and GitHub executor jobs. |
-| AI provider | OpenRouter Chat Completions | Target provider for structured triage output using JSON schema responses. |
-| GitHub integration | GitHub App + webhooks + REST API | Target integration for issue events and approved label/comment execution. |
+| Layer              | Tooling                           | Purpose                                                                             |
+| ------------------ | --------------------------------- | ----------------------------------------------------------------------------------- |
+| Package manager    | pnpm workspace                    | Owns `apps/*` and `packages/*` workspaces.                                          |
+| Task runner        | vite-plus (`vp`)                  | Build, typecheck, format/lint, and workspace dev orchestration.                     |
+| Frontend           | Vite + React 19 + React Router    | Dashboard app in `apps/web`.                                                        |
+| API server         | Hono + oRPC                       | HTTP server in `apps/api`; type-safe API routers in `packages/api`.                 |
+| Auth               | Better Auth + Organization plugin | Email/password auth, OAuth providers, organizations, members, roles.                |
+| Database           | PostgreSQL + Drizzle ORM          | Domain and auth persistence in `packages/db`.                                       |
+| UI package         | `@agentclave/ui`                  | Shared shadcn/Base UI-derived primitives, styles, forms, tables.                    |
+| Background jobs    | BullMQ + Redis                    | Target queue system for webhook-triggered agent execution and GitHub executor jobs. |
+| AI provider        | OpenRouter Chat Completions       | Target provider for structured triage output using JSON schema responses.           |
+| GitHub integration | GitHub App + webhooks + REST API  | Target integration for issue events and approved label/comment execution.           |
 
 ## Repository structure
 
@@ -41,18 +41,18 @@
 
 ## System boundaries
 
-| Boundary | Owns | Must not own |
-| --- | --- | --- |
-| `apps/api` | HTTP process wiring, Hono middleware, Better Auth handler, webhook route mounting, oRPC/OpenAPI handler mounting. | Domain business logic that should be reusable by worker/tests. |
-| `apps/web` | React routes, dashboard layout, user-facing product surfaces, client data fetching. | Direct database access, GitHub secrets, LLM calls, policy decisions. |
-| `apps/worker` | BullMQ worker startup and job registration. | HTTP request handling or UI logic. |
-| `packages/api/src/routers` | Authenticated oRPC procedures and API contracts. | Long-running work or direct external mutations without domain services. |
-| `packages/api/src/core` | Shared backend services: auditing, permissions, errors, RLS helpers, and new agent/GitHub/policy/job services. | UI-specific formatting. |
-| `packages/db` | Drizzle tables, enums, migrations, and DB exports. | Business workflows beyond persistence shape. |
-| `packages/auth` | Better Auth setup, organization plugin, role/permission wiring, initial workspace seed data. | Product workflow execution. |
-| `packages/schemas` | Zod schemas for API input/output and validation. | Database access or side effects. |
-| `packages/types` | Shared literal values, permission keys, and type unions. | Runtime validation that belongs in `packages/schemas`. |
-| `packages/ui` | Shared components and styling primitives. | Product-specific data fetching or domain logic. |
+| Boundary                   | Owns                                                                                                              | Must not own                                                            |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `apps/api`                 | HTTP process wiring, Hono middleware, Better Auth handler, webhook route mounting, oRPC/OpenAPI handler mounting. | Domain business logic that should be reusable by worker/tests.          |
+| `apps/web`                 | React routes, dashboard layout, user-facing product surfaces, client data fetching.                               | Direct database access, GitHub secrets, LLM calls, policy decisions.    |
+| `apps/worker`              | BullMQ worker startup and job registration.                                                                       | HTTP request handling or UI logic.                                      |
+| `packages/api/src/routers` | Authenticated oRPC procedures and API contracts.                                                                  | Long-running work or direct external mutations without domain services. |
+| `packages/api/src/core`    | Shared backend services: auditing, permissions, errors, RLS helpers, and new agent/GitHub/policy/job services.    | UI-specific formatting.                                                 |
+| `packages/db`              | Drizzle tables, enums, migrations, and DB exports.                                                                | Business workflows beyond persistence shape.                            |
+| `packages/auth`            | Better Auth setup, organization plugin, role/permission wiring, initial workspace seed data.                      | Product workflow execution.                                             |
+| `packages/schemas`         | Zod schemas for API input/output and validation.                                                                  | Database access or side effects.                                        |
+| `packages/types`           | Shared literal values, permission keys, and type unions.                                                          | Runtime validation that belongs in `packages/schemas`.                  |
+| `packages/ui`              | Shared components and styling primitives.                                                                         | Product-specific data fetching or domain logic.                         |
 
 ## Current implemented state
 
@@ -148,6 +148,7 @@ Key schema changes from Phase 1:
 - `proposed_actions`: `payload` replaces `params`, removed `reasoning` and review columns, added `matched_policy_rule_id`, default `pending_policy`.
 - `audit_logs`: actor/target model (`actor_type`, `actor_id`, `target_type`, `target_id`) with jsonb `metadata`.
 - GitHub App secrets and OpenRouter API key are stored in env, not in Postgres.
+
 ## Authentication and authorization
 
 - Better Auth handles sessions and organization membership.

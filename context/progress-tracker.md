@@ -8,11 +8,10 @@
 - [x] `Tool not found` fallback for missing/404 tools, destructive card on fetch errors.
 - [x] Project-wide `check-types` passes.
 ## Current status
-
-**Phase:** AgentClave Pivot — Complete
-**Last completed:** Full pivot from RunGuard GitHub issue triage to AgentClave governed agent runtime
-**Current task:** AgentClave pivot implementation complete
-**Next:** Verification and refinement
+**Phase:** Features-Based Architecture Refactor — Complete
+**Last completed:** Refactored apps/web/src to features-based architecture
+**Current task:** Features-based architecture refactor complete
+**Next:** Continue building product features in new structure
 
 ## Progress
 
@@ -41,20 +40,36 @@
 - [x] Type checks passing
 - [x] Tests passing (45/45)
 - [x] Build succeeding
+### Features-Based Architecture Refactor — Complete
+
+- [x] Created `apps/web/src/features/` directory with per-feature folders
+- [x] Moved all page components from `pages/` to `features/<feature>/`
+- [x] Moved `auth-form-layout` from `components/auth/` into `features/auth/`
+- [x] Replaced old `pages/` files with thin re-export shims
+- [x] Updated `App.tsx` imports to point at `features/` paths
+- [x] Fixed relative import paths (`../../hooks/`, `./auth-form-layout`)
+- [x] Removed unused imports (`ExternalLink`, `CardHeader`, `CardTitle`)
+- [x] Ran `vp fmt` for consistent formatting
+- [x] Verified: zero new lint/typecheck errors in `apps/web/`
+- [x] Updated `context/ui-registry.md` with new feature paths
+- [x] Updated `context/progress-tracker.md`
 
 ### Previous Phases (RunGuard)
 
 #### Phase 0 — Context and architecture foundation
+
 - [x] Product discovery from `prd.md`
 - [x] Architecture blueprint confirmation
 - [x] All context files created
 
 #### Phase 1 — Domain model and vocabulary cutover
+
 - [x] Shared vocabulary cutover
 - [x] Database schema completion
 - [x] Seed data alignment
 
 #### Phase 2 — Infrastructure and backend services
+
 - [x] Redis and BullMQ infrastructure
 - [x] Worker process
 - [x] Core backend service modules

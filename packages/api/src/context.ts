@@ -58,7 +58,13 @@ export async function createContext({ context }: CreateContextOptions): Promise<
 	}
 
 	return {
-		session: { user: { id: sessionResult.user.id, name: sessionResult.user.name, email: sessionResult.user.email } },
+		session: {
+			user: {
+				id: sessionResult.user.id,
+				name: sessionResult.user.name,
+				email: sessionResult.user.email,
+			},
+		},
 		activeOrganization,
 		activeMember,
 		permissions: activeMember ? [...getPermissionsForRole(activeMember.role)] : [],

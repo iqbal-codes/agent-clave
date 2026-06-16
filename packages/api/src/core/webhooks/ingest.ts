@@ -1,5 +1,12 @@
 import { db } from "@agentclave/db";
-import { webhookEndpoints, webhookDeliveries, agentRuns, approvalSessions, toolRequests, auditLogs } from "@agentclave/db/schema/business";
+import {
+	webhookEndpoints,
+	webhookDeliveries,
+	agentRuns,
+	approvalSessions,
+	toolRequests,
+	auditLogs,
+} from "@agentclave/db/schema/business";
 import { eq, and } from "drizzle-orm";
 import { randomUUID, createHash } from "node:crypto";
 import { verifyWebhookRequest } from "./verify";
@@ -32,10 +39,7 @@ export async function ingestWebhook(input: {
 		.select()
 		.from(webhookEndpoints)
 		.where(
-			and(
-				eq(webhookEndpoints.publicToken, publicToken),
-				eq(webhookEndpoints.status, "active"),
-			),
+			and(eq(webhookEndpoints.publicToken, publicToken), eq(webhookEndpoints.status, "active")),
 		)
 		.limit(1);
 
@@ -88,7 +92,10 @@ export async function ingestWebhook(input: {
 		.limit(1);
 
 	if (existingDelivery) {
-		return { status: endpoint.responseStatus, body: endpoint.responseBody as Record<string, unknown> };
+		return {
+			status: endpoint.responseStatus,
+			body: endpoint.responseBody as Record<string, unknown>,
+		};
 	}
 
 	// Store delivery
@@ -120,37 +127,52 @@ export async function ingestWebhook(input: {
 				.limit(1);
 
 			if (!session || session.status !== "pending") {
-				return { status: endpoint.responseStatus, body: endpoint.responseBody as Record<string, unknown> };
+				return {
+					status: endpoint.responseStatus,
+					body: endpoint.responseBody as Record<string, unknown>,
+				};
 			}
 
 			// Check expiry
 			if (new Date() > session.expiresAt) {
-				await db.update(approvalSessions).set({
-					status: "expired",
-					decidedAt: new Date(),
-				}).where(eq(approvalSessions.id, session.id));
+				await db
+					.update(approvalSessions)
+					.set({
+						status: "expired",
+						decidedAt: new Date(),
+					})
+					.where(eq(approvalSessions.id, session.id));
 
-				return { status: endpoint.responseStatus, body: endpoint.responseBody as Record<string, unknown> };
+				return {
+					status: endpoint.responseStatus,
+					body: endpoint.responseBody as Record<string, unknown>,
+				};
 			}
 
 			const isApproval = Boolean(approveMatch);
 			const newStatus = isApproval ? "approved" : "rejected";
 
-			await db.update(approvalSessions).set({
-				status: newStatus,
-				approverMetadata: {
-					userId: telegramPayload.message.from?.id,
-					username: telegramPayload.message.from?.username,
-					chatId: telegramPayload.message.chat?.id,
-				},
-				decisionNote: note,
-				decidedAt: new Date(),
-			}).where(eq(approvalSessions.id, session.id));
+			await db
+				.update(approvalSessions)
+				.set({
+					status: newStatus,
+					approverMetadata: {
+						userId: telegramPayload.message.from?.id,
+						username: telegramPayload.message.from?.username,
+						chatId: telegramPayload.message.chat?.id,
+					},
+					decisionNote: note,
+					decidedAt: new Date(),
+				})
+				.where(eq(approvalSessions.id, session.id));
 
-			await db.update(toolRequests).set({
-				status: newStatus,
-				updatedAt: new Date(),
-			}).where(eq(toolRequests.id, session.toolRequestId));
+			await db
+				.update(toolRequests)
+				.set({
+					status: newStatus,
+					updatedAt: new Date(),
+				})
+				.where(eq(toolRequests.id, session.toolRequestId));
 
 			await db.insert(auditLogs).values({
 				id: randomUUID(),
@@ -169,22 +191,31 @@ export async function ingestWebhook(input: {
 				await enqueueToolExecutionJob({ toolRequestId: session.toolRequestId });
 			} else {
 				// Mark run as rejected
-				await db.update(agentRuns).set({
-					status: "rejected",
-					errorMessage: note ?? "Approval rejected by manager",
-					completedAt: new Date(),
-					updatedAt: new Date(),
-				}).where(eq(agentRuns.id, session.runId));
+				await db
+					.update(agentRuns)
+					.set({
+						status: "rejected",
+						errorMessage: note ?? "Approval rejected by manager",
+						completedAt: new Date(),
+						updatedAt: new Date(),
+					})
+					.where(eq(agentRuns.id, session.runId));
 			}
 
 			// Mark delivery as processed
-			await db.update(webhookDeliveries).set({
-				status: "processed",
-				runId: session.runId,
-				processedAt: new Date(),
-			}).where(eq(webhookDeliveries.id, deliveryId));
+			await db
+				.update(webhookDeliveries)
+				.set({
+					status: "processed",
+					runId: session.runId,
+					processedAt: new Date(),
+				})
+				.where(eq(webhookDeliveries.id, deliveryId));
 
-			return { status: endpoint.responseStatus, body: endpoint.responseBody as Record<string, unknown> };
+			return {
+				status: endpoint.responseStatus,
+				body: endpoint.responseBody as Record<string, unknown>,
+			};
 		}
 	}
 
@@ -212,14 +243,20 @@ export async function ingestWebhook(input: {
 	});
 
 	// Mark delivery with run
-	await db.update(webhookDeliveries).set({
-		status: "queued",
-		runId,
-		processedAt: new Date(),
-	}).where(eq(webhookDeliveries.id, deliveryId));
+	await db
+		.update(webhookDeliveries)
+		.set({
+			status: "queued",
+			runId,
+			processedAt: new Date(),
+		})
+		.where(eq(webhookDeliveries.id, deliveryId));
 
 	// Enqueue processing
 	await enqueueAgentRunJob({ runId });
 
-	return { status: endpoint.responseStatus, body: endpoint.responseBody as Record<string, unknown> };
+	return {
+		status: endpoint.responseStatus,
+		body: endpoint.responseBody as Record<string, unknown>,
+	};
 }

@@ -35,28 +35,13 @@ export const toolRequestStatusEnum = pgEnum("tool_request_status", [
 	"cancelled",
 ]);
 
-export const resourceStatusEnum = pgEnum("resource_status", [
-	"active",
-	"paused",
-]);
+export const resourceStatusEnum = pgEnum("resource_status", ["active", "paused"]);
 
-export const policyDecisionEnum = pgEnum("policy_decision", [
-	"allow",
-	"require_approval",
-	"deny",
-]);
+export const policyDecisionEnum = pgEnum("policy_decision", ["allow", "require_approval", "deny"]);
 
-export const agentStatusEnum = pgEnum("agent_status", [
-	"active",
-	"paused",
-]);
+export const agentStatusEnum = pgEnum("agent_status", ["active", "paused"]);
 
-export const riskLevelEnum = pgEnum("risk_level", [
-	"low",
-	"medium",
-	"high",
-	"critical",
-]);
+export const riskLevelEnum = pgEnum("risk_level", ["low", "medium", "high", "critical"]);
 
 export const approvalStatusEnum = pgEnum("approval_status", [
 	"pending",
@@ -75,7 +60,9 @@ export const organizationSettings = pgTable(
 		organizationId: text("organization_id").notNull(),
 		defaultAgentId: text("default_agent_id"),
 		maxDailyRuns: integer("max_daily_runs").default(100).notNull(),
-		defaultApprovalTimeoutMinutes: integer("default_approval_timeout_minutes").default(1440).notNull(),
+		defaultApprovalTimeoutMinutes: integer("default_approval_timeout_minutes")
+			.default(1440)
+			.notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()
@@ -157,7 +144,10 @@ export const webhookEndpoints = pgTable(
 		encryptedSecret: text("encrypted_secret"),
 		expectedMethod: text("expected_method").default("POST").notNull(),
 		responseStatus: integer("response_status").default(202).notNull(),
-		responseBody: jsonb("response_body").$type<Record<string, unknown>>().default({ ok: true }).notNull(),
+		responseBody: jsonb("response_body")
+			.$type<Record<string, unknown>>()
+			.default({ ok: true })
+			.notNull(),
 		status: resourceStatusEnum("status").default("paused").notNull(),
 		lastSamplePayload: jsonb("last_sample_payload").$type<Record<string, unknown> | null>(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -166,9 +156,7 @@ export const webhookEndpoints = pgTable(
 			.$onUpdate(() => new Date())
 			.notNull(),
 	},
-	(table) => [
-		index("webhook_endpoints_orgId_idx").on(table.organizationId),
-	],
+	(table) => [index("webhook_endpoints_orgId_idx").on(table.organizationId)],
 );
 
 // ── Webhook Deliveries ────────────────────────────────────────
@@ -191,7 +179,10 @@ export const webhookDeliveries = pgTable(
 		processedAt: timestamp("processed_at"),
 	},
 	(table) => [
-		unique("webhook_deliveries_endpoint_idempotency_unique").on(table.endpointId, table.idempotencyKey),
+		unique("webhook_deliveries_endpoint_idempotency_unique").on(
+			table.endpointId,
+			table.idempotencyKey,
+		),
 		index("webhook_deliveries_orgId_idx").on(table.organizationId),
 		index("webhook_deliveries_runId_idx").on(table.runId),
 	],
@@ -241,9 +232,7 @@ export const agentTools = pgTable(
 		enabled: boolean("enabled").default(true).notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
-	(table) => [
-		unique("agent_tools_agent_tool_unique").on(table.agentId, table.toolId),
-	],
+	(table) => [unique("agent_tools_agent_tool_unique").on(table.agentId, table.toolId)],
 );
 
 // ── Agent Runs ────────────────────────────────────────────────
@@ -301,7 +290,9 @@ export const toolRequests = pgTable(
 		riskLevel: riskLevelEnum("risk_level").default("medium").notNull(),
 		status: toolRequestStatusEnum("status").default("pending_policy").notNull(),
 		policyDecision: policyDecisionEnum("policy_decision"),
-		matchedPolicyId: text("matched_policy_id").references(() => policies.id, { onDelete: "set null" }),
+		matchedPolicyId: text("matched_policy_id").references(() => policies.id, {
+			onDelete: "set null",
+		}),
 		completedAt: timestamp("completed_at"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
@@ -334,9 +325,7 @@ export const toolExecutions = pgTable(
 		idempotencyKey: text("idempotency_key"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
-	(table) => [
-		index("tool_executions_toolRequestId_idx").on(table.toolRequestId),
-	],
+	(table) => [index("tool_executions_toolRequestId_idx").on(table.toolRequestId)],
 );
 
 // ── Policies ──────────────────────────────────────────────────

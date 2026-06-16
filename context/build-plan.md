@@ -84,7 +84,7 @@ Build the control plane in dependency order: domain vocabulary and persistence f
 - Add `apps/worker` package.
 - Start BullMQ workers for triage and GitHub executor queues.
 - Keep job handlers in shared backend service modules, not inline in process startup.
-**Verification:** Worker starts without processing jobs and can register processors.
+  **Verification:** Worker starts without processing jobs and can register processors.
 
 **Status:** Complete.
 
@@ -105,7 +105,7 @@ Add backend services under `packages/api/src/core` or focused subfolders:
 - Audit writer.
 - Eval sample writer.
 - Run status transition helper.
-**Verification:** Unit tests cover pure services.
+  **Verification:** Unit tests cover pure services.
 
 **Status:** Complete.
 
@@ -301,14 +301,14 @@ Add backend services under `packages/api/src/core` or focused subfolders:
 
 ## Feature count
 
-| Phase | Feature groups |
-| --- | ---: |
-| Phase 0 — Context and architecture foundation | 2 |
-| Phase 1 — Domain model and vocabulary cutover | 3 |
-| Phase 2 — Infrastructure and backend services | 3 |
-| Phase 3 — GitHub webhook ingress | 2 |
-| Phase 4 — Triage worker pipeline | 3 |
-| Phase 5 — Approval and executor workflow | 2 |
-| Phase 6 — Product API completion | 3 |
-| Phase 7 — Web app surfaces | 5 |
-| Phase 8 — Verification, docs, and demo flow | 2 |
+| Phase                                         | Feature groups |
+| --------------------------------------------- | -------------: |
+| Phase 0 — Context and architecture foundation |              2 |
+| Phase 1 — Domain model and vocabulary cutover |              3 |
+| Phase 2 — Infrastructure and backend services |              3 |
+| Phase 3 — GitHub webhook ingress              |              2 |
+| Phase 4 — Triage worker pipeline              |              3 |
+| Phase 5 — Approval and executor workflow      |              2 |
+| Phase 6 — Product API completion              |              3 |
+| Phase 7 — Web app surfaces                    |              5 |
+| Phase 8 — Verification, docs, and demo flow   |              2 |

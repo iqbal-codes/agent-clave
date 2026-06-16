@@ -54,10 +54,10 @@ The demo seeds an Inventory Ops Agent with Telegram and Demo Inventory connector
 
 ## Development
 
-| App | Port | URL |
-|-----|------|-----|
-| Web | 5100 | http://localhost:5100 |
-| API | 4000 | http://localhost:4000 |
+| App            | Port | URL                   |
+| -------------- | ---- | --------------------- |
+| Web            | 5100 | http://localhost:5100 |
+| API            | 4000 | http://localhost:4000 |
 | Demo Inventory | 4301 | http://localhost:4301 |
 
 ## Commands
