@@ -15,10 +15,7 @@ import { env } from "@agentclave/env/server";
 
 const now = () => new Date();
 
-export async function seedWorkspaceTables(
-	orgId: string,
-	userId: string,
-): Promise<void> {
+export async function seedWorkspaceTables(orgId: string, userId: string): Promise<void> {
 	const timestamp = now();
 
 	// ── Org Settings ──────────────────────────────────────
@@ -59,7 +56,11 @@ export async function seedWorkspaceTables(
 				"- Stock adjustments require manager approval.",
 				"- Send Telegram notifications after completion or rejection.",
 			].join("\n"),
-			guardrails: ["never guess SKU", "check stock before adjustment", "every adjustment needs reason"],
+			guardrails: [
+				"never guess SKU",
+				"check stock before adjustment",
+				"every adjustment needs reason",
+			],
 			riskLevel: "medium",
 			status: "paused",
 			createdBy: userId,
@@ -79,7 +80,10 @@ export async function seedWorkspaceTables(
 			provider: "telegram",
 			name: "Telegram Bot",
 			config: { managerChatId: process.env.TELEGRAM_MANAGER_CHAT_ID ?? "" },
-			encryptedCredentials: encryptSecret({ botToken: process.env.TELEGRAM_BOT_TOKEN ?? "" }, env.CREDENTIAL_ENCRYPTION_KEY),
+			encryptedCredentials: encryptSecret(
+				{ botToken: process.env.TELEGRAM_BOT_TOKEN ?? "" },
+				env.CREDENTIAL_ENCRYPTION_KEY,
+			),
 			status: "paused",
 			createdAt: timestamp,
 			updatedAt: timestamp,
@@ -92,7 +96,10 @@ export async function seedWorkspaceTables(
 			provider: "demo_inventory",
 			name: "Demo Inventory API",
 			config: { baseUrl: process.env.DEMO_INVENTORY_API_BASE_URL ?? "http://localhost:4301" },
-			encryptedCredentials: encryptSecret({ apiKey: process.env.DEMO_INVENTORY_API_KEY ?? "demo-inventory-key" }, env.CREDENTIAL_ENCRYPTION_KEY),
+			encryptedCredentials: encryptSecret(
+				{ apiKey: process.env.DEMO_INVENTORY_API_KEY ?? "demo-inventory-key" },
+				env.CREDENTIAL_ENCRYPTION_KEY,
+			),
 			status: "paused",
 			createdAt: timestamp,
 			updatedAt: timestamp,
@@ -109,7 +116,10 @@ export async function seedWorkspaceTables(
 			publicToken: webhookToken,
 			verificationType: "header_secret",
 			secretHeaderName: "X-Telegram-Bot-Api-Secret-Token",
-			encryptedSecret: encryptSecret({ secret: process.env.TELEGRAM_WEBHOOK_SECRET ?? "dev-telegram-secret" }, env.CREDENTIAL_ENCRYPTION_KEY),
+			encryptedSecret: encryptSecret(
+				{ secret: process.env.TELEGRAM_WEBHOOK_SECRET ?? "dev-telegram-secret" },
+				env.CREDENTIAL_ENCRYPTION_KEY,
+			),
 			responseStatus: 202,
 			responseBody: { ok: true },
 			status: "paused",
@@ -266,7 +276,11 @@ export async function seedWorkspaceTables(
 		const policyDefs = [
 			{ toolName: "inventory.search_product", effect: "allow" as const },
 			{ toolName: "inventory.get_stock", effect: "allow" as const },
-			{ toolName: "inventory.create_stock_adjustment", effect: "require_approval" as const, approverRole: "manager" },
+			{
+				toolName: "inventory.create_stock_adjustment",
+				effect: "require_approval" as const,
+				approverRole: "manager",
+			},
 			{ toolName: "telegram.send_message", effect: "allow" as const },
 		];
 

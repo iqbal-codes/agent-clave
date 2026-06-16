@@ -192,11 +192,11 @@ The MVP follows a mostly linear workflow, but the internal data model should be 
 
 ```json
 {
-  "summary": "Safari users cannot click the checkout button, blocking payment completion.",
-  "labels": ["bug", "frontend"],
-  "priority": "P1",
-  "confidence": 0.91,
-  "draftComment": "Thanks for reporting this. We are triaging the Safari checkout issue and will investigate the frontend checkout flow."
+	"summary": "Safari users cannot click the checkout button, blocking payment completion.",
+	"labels": ["bug", "frontend"],
+	"priority": "P1",
+	"confidence": 0.91,
+	"draftComment": "Thanks for reporting this. We are triaging the Safari checkout issue and will investigate the frontend checkout flow."
 }
 ```
 
@@ -237,13 +237,11 @@ Users must be able to log in and access a workspace.
 MVP roles:
 
 - **Admin**
-
   - Can configure agent.
   - Can connect GitHub.
   - Can approve or reject actions.
 
 - **Viewer**
-
   - Can view runs, traces, audit logs, and evals.
   - Cannot approve actions or change settings.
 
@@ -406,12 +404,12 @@ The LLM must return structured JSON.
 
 ```json
 {
-  "summary": "string",
-  "labels": ["string"],
-  "priority": "P1 | P2 | P3 | none",
-  "confidence": "number between 0 and 1",
-  "draftComment": "string",
-  "reasoningSummary": "string"
+	"summary": "string",
+	"labels": ["string"],
+	"priority": "P1 | P2 | P3 | none",
+	"confidence": "number between 0 and 1",
+	"draftComment": "string",
+	"reasoningSummary": "string"
 }
 ```
 
@@ -499,20 +497,20 @@ Example:
 
 ```json
 {
-  "action": "github.add_label",
-  "effect": "require_approval",
-  "conditions": {
-    "allowedLabels": [
-      "bug",
-      "frontend",
-      "backend",
-      "documentation",
-      "needs-triage",
-      "P1",
-      "P2",
-      "P3"
-    ]
-  }
+	"action": "github.add_label",
+	"effect": "require_approval",
+	"conditions": {
+		"allowedLabels": [
+			"bug",
+			"frontend",
+			"backend",
+			"documentation",
+			"needs-triage",
+			"P1",
+			"P2",
+			"P3"
+		]
+	}
 }
 ```
 
@@ -1271,7 +1269,6 @@ Body: Users on Safari 17 cannot click the checkout button after adding items to 
 6. Open run detail.
 7. Show trace timeline.
 8. Show AI output:
-
    - Summary
    - Labels
    - Priority

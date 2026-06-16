@@ -16,12 +16,7 @@ export const toolRequestsRouter = {
 			return await db
 				.select()
 				.from(toolRequests)
-				.where(
-					and(
-						eq(toolRequests.organizationId, orgId),
-						eq(toolRequests.runId, input.runId),
-					),
-				)
+				.where(and(eq(toolRequests.organizationId, orgId), eq(toolRequests.runId, input.runId)))
 				.orderBy(toolRequests.createdAt);
 		}),
 
@@ -77,7 +72,12 @@ export const toolRequestsRouter = {
 			}
 
 			// Ignore duplicate decisions if already terminal
-			if (session.status === "approved" || session.status === "rejected" || session.status === "expired" || session.status === "cancelled") {
+			if (
+				session.status === "approved" ||
+				session.status === "rejected" ||
+				session.status === "expired" ||
+				session.status === "cancelled"
+			) {
 				await db.insert(auditLogs).values({
 					id: randomUUID(),
 					organizationId: orgId,
@@ -94,17 +94,23 @@ export const toolRequestsRouter = {
 
 			const newStatus = input.decision === "approved" ? "approved" : "rejected";
 
-			await db.update(approvalSessions).set({
-				status: newStatus,
-				approverUserId: userId,
-				decisionNote: input.note ?? null,
-				decidedAt: new Date(),
-			}).where(eq(approvalSessions.id, session.id));
+			await db
+				.update(approvalSessions)
+				.set({
+					status: newStatus,
+					approverUserId: userId,
+					decisionNote: input.note ?? null,
+					decidedAt: new Date(),
+				})
+				.where(eq(approvalSessions.id, session.id));
 
-			await db.update(toolRequests).set({
-				status: newStatus,
-				updatedAt: new Date(),
-			}).where(eq(toolRequests.id, session.toolRequestId));
+			await db
+				.update(toolRequests)
+				.set({
+					status: newStatus,
+					updatedAt: new Date(),
+				})
+				.where(eq(toolRequests.id, session.toolRequestId));
 
 			await db.insert(auditLogs).values({
 				id: randomUUID(),

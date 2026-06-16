@@ -1,14 +1,8 @@
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 import { env } from "@agentclave/env/server";
-import {
-	AGENTCLAVE_AGENT_RUN_QUEUE,
-	AGENTCLAVE_TOOL_EXECUTION_QUEUE,
-} from "@agentclave/types";
-import {
-	agentRunJobPayloadSchema,
-	toolExecutionJobPayloadSchema,
-} from "@agentclave/schemas";
+import { AGENTCLAVE_AGENT_RUN_QUEUE, AGENTCLAVE_TOOL_EXECUTION_QUEUE } from "@agentclave/types";
+import { agentRunJobPayloadSchema, toolExecutionJobPayloadSchema } from "@agentclave/schemas";
 
 let _connection: IORedis | null = null;
 
@@ -42,16 +36,12 @@ function getToolExecutionQueue(): Queue {
 	return _toolExecutionQueue;
 }
 
-export async function enqueueAgentRunJob(input: {
-	runId: string;
-}): Promise<void> {
+export async function enqueueAgentRunJob(input: { runId: string }): Promise<void> {
 	const payload = agentRunJobPayloadSchema.parse(input);
 	await getAgentRunQueue().add("process-agent-run", payload);
 }
 
-export async function enqueueToolExecutionJob(input: {
-	toolRequestId: string;
-}): Promise<void> {
+export async function enqueueToolExecutionJob(input: { toolRequestId: string }): Promise<void> {
 	const payload = toolExecutionJobPayloadSchema.parse(input);
 	await getToolExecutionQueue().add("execute-tool-request", payload);
 }

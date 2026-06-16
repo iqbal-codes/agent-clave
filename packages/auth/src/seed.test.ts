@@ -10,10 +10,7 @@ import {
 	agentTools,
 	webhookEndpoints,
 } from "@agentclave/db/schema/business";
-import {
-	organization,
-	user,
-} from "@agentclave/db/schema/auth";
+import { organization, user } from "@agentclave/db/schema/auth";
 import { seedWorkspaceTables } from "./seed";
 
 describe("seedWorkspaceTables", () => {

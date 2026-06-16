@@ -59,10 +59,7 @@ export function verifyWebhookRequest(input: {
 			return false;
 		}
 
-		const expectedSig = createHash("sha256")
-			.update(decrypted.secret)
-			.update(rawBody)
-			.digest("hex");
+		const expectedSig = createHash("sha256").update(decrypted.secret).update(rawBody).digest("hex");
 
 		const providedBuf = Buffer.from(providedSig, "hex");
 		const expectedBuf = Buffer.from(expectedSig, "hex");

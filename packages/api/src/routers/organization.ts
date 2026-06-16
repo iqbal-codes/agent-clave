@@ -41,9 +41,7 @@ export const organizationRouter = {
 		const [activeAgentCount] = await db
 			.select({ value: count() })
 			.from(agents)
-			.where(
-				sql`${agents.organizationId} = ${orgId} AND ${agents.status} = 'active'`,
-			);
+			.where(sql`${agents.organizationId} = ${orgId} AND ${agents.status} = 'active'`);
 
 		const [completedCount] = await db
 			.select({ value: count() })

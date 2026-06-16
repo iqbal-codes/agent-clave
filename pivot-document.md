@@ -488,16 +488,16 @@ Example:
 
 ```json
 {
-  "name": "inventory.create_stock_adjustment",
-  "description": "Create a stock adjustment request for a product SKU",
-  "inputSchema": {
-    "sku": "string",
-    "newQuantity": "number",
-    "reason": "string",
-    "notes": "string"
-  },
-  "riskLevel": "high",
-  "defaultPolicy": "require_manager_approval"
+	"name": "inventory.create_stock_adjustment",
+	"description": "Create a stock adjustment request for a product SKU",
+	"inputSchema": {
+		"sku": "string",
+		"newQuantity": "number",
+		"reason": "string",
+		"notes": "string"
+	},
+	"riskLevel": "high",
+	"defaultPolicy": "require_manager_approval"
 }
 ```
 
@@ -1262,7 +1262,6 @@ MVP is complete when:
 1. Open AgentClave dashboard.
 2. Show Inventory Ops Agent.
 3. Show tools:
-
    - search product
    - get stock
    - create stock adjustment
@@ -1270,7 +1269,6 @@ MVP is complete when:
    - send Telegram message
 
 4. Show policy:
-
    - read tools allowed
    - stock adjustment requires manager approval
 
@@ -1282,7 +1280,6 @@ MVP is complete when:
 
 6. Open AgentClave run detail.
 7. Show trace:
-
    - message received
    - intent parsed
    - product searched

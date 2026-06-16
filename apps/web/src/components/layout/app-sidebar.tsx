@@ -55,7 +55,8 @@ export function AppSidebar() {
 	const { session, signOut } = useAuth();
 	const navItems = useSidebarNav();
 	const { organization } = useOrganization();
-	const user = (session as { user?: { name?: string; email?: string; image?: string } } | null)?.user ?? null;
+	const user =
+		(session as { user?: { name?: string; email?: string; image?: string } } | null)?.user ?? null;
 
 	return (
 		<Sidebar collapsible="icon">
@@ -86,7 +87,9 @@ export function AppSidebar() {
 					<SidebarMenu>
 						{navItems.map((item) => {
 							const Icon = item.icon ? (iconMap[item.icon] ?? LayoutDashboard) : LayoutDashboard;
-							const isActive = location.pathname === item.url || (item.url !== "/" && location.pathname.startsWith(item.url));
+							const isActive =
+								location.pathname === item.url ||
+								(item.url !== "/" && location.pathname.startsWith(item.url));
 
 							return (
 								<SidebarMenuItem key={item.title}>
@@ -125,7 +128,9 @@ export function AppSidebar() {
 								</Avatar>
 								<div className="grid flex-1 text-left text-base leading-tight">
 									<span className="truncate font-semibold">{user?.name ?? "User"}</span>
-									<span className="text-muted-foreground truncate text-sm">{user?.email ?? ""}</span>
+									<span className="text-muted-foreground truncate text-sm">
+										{user?.email ?? ""}
+									</span>
 								</div>
 								<ChevronsUpDown className="ml-auto size-5" />
 							</DropdownMenuTrigger>

@@ -1,35 +1,36 @@
 import { eq, desc, and } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@agentclave/db";
-import { agentRuns, agentRunSteps, toolRequests, toolExecutions, approvalSessions, auditLogs } from "@agentclave/db/schema/business";
+import {
+	agentRuns,
+	agentRunSteps,
+	toolRequests,
+	toolExecutions,
+	approvalSessions,
+	auditLogs,
+} from "@agentclave/db/schema/business";
 import { organizationProcedure } from "../index";
 import { throwNotFound } from "../core/errors";
 import { tableQuerySchema } from "@agentclave/schemas";
 
 export const runsRouter = {
-	list: organizationProcedure
-		.input(tableQuerySchema)
-		.handler(async ({ context, input }) => {
-			const orgId = context.activeOrganization!.id;
-			const rows = await db
-				.select()
-				.from(agentRuns)
-				.where(eq(agentRuns.organizationId, orgId))
-				.orderBy(desc(agentRuns.createdAt))
-				.limit(input.pageSize)
-				.offset((input.page - 1) * input.pageSize);
-			return rows;
-		}),
+	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context, input }) => {
+		const orgId = context.activeOrganization!.id;
+		const rows = await db
+			.select()
+			.from(agentRuns)
+			.where(eq(agentRuns.organizationId, orgId))
+			.orderBy(desc(agentRuns.createdAt))
+			.limit(input.pageSize)
+			.offset((input.page - 1) * input.pageSize);
+		return rows;
+	}),
 
 	getById: organizationProcedure
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
-			const [run] = await db
-				.select()
-				.from(agentRuns)
-				.where(eq(agentRuns.id, input.id))
-				.limit(1);
+			const [run] = await db.select().from(agentRuns).where(eq(agentRuns.id, input.id)).limit(1);
 			if (!run || run.organizationId !== orgId) {
 				throwNotFound("Run");
 			}
@@ -46,11 +47,13 @@ export const runsRouter = {
 				.where(eq(toolRequests.runId, input.id))
 				.orderBy(toolRequests.createdAt);
 
-			const toolExecs = toolReqs.length > 0
-				? await db.select().from(toolExecutions).where(
-						eq(toolExecutions.toolRequestId, toolReqs[0]!.id),
-					)
-				: [];
+			const toolExecs =
+				toolReqs.length > 0
+					? await db
+							.select()
+							.from(toolExecutions)
+							.where(eq(toolExecutions.toolRequestId, toolReqs[0]!.id))
+					: [];
 
 			const approvals = await db
 				.select()
@@ -81,12 +84,7 @@ export const runsRouter = {
 			const rows = await db
 				.select()
 				.from(agentRuns)
-				.where(
-					and(
-						eq(agentRuns.organizationId, orgId),
-						eq(agentRuns.agentId, input.agentId),
-					),
-				)
+				.where(and(eq(agentRuns.organizationId, orgId), eq(agentRuns.agentId, input.agentId)))
 				.orderBy(desc(agentRuns.createdAt))
 				.limit(input.pageSize)
 				.offset((input.page - 1) * input.pageSize);
@@ -101,10 +99,7 @@ export const runsRouter = {
 				.select()
 				.from(agentRuns)
 				.where(
-					and(
-						eq(agentRuns.organizationId, orgId),
-						eq(agentRuns.status, "waiting_for_approval"),
-					),
+					and(eq(agentRuns.organizationId, orgId), eq(agentRuns.status, "waiting_for_approval")),
 				)
 				.orderBy(desc(agentRuns.createdAt))
 				.limit(input.pageSize)
@@ -116,11 +111,7 @@ export const runsRouter = {
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
-			const [run] = await db
-				.select()
-				.from(agentRuns)
-				.where(eq(agentRuns.id, input.id))
-				.limit(1);
+			const [run] = await db.select().from(agentRuns).where(eq(agentRuns.id, input.id)).limit(1);
 			if (!run || run.organizationId !== orgId) {
 				throwNotFound("Run");
 			}

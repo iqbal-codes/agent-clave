@@ -5,23 +5,25 @@ import { db } from "@agentclave/db";
 import { connectors, webhookEndpoints, webhookDeliveries } from "@agentclave/db/schema/business";
 import { organizationProcedure } from "../index";
 import { throwNotFound } from "../core/errors";
-import { createConnectorSchema, createWebhookEndpointSchema, tableQuerySchema } from "@agentclave/schemas";
+import {
+	createConnectorSchema,
+	createWebhookEndpointSchema,
+	tableQuerySchema,
+} from "@agentclave/schemas";
 import { encryptSecret } from "../core/credentials";
 
 export const connectorsRouter = {
 	// ── Connectors ──────────────────────────────────────────
-	list: organizationProcedure
-		.input(tableQuerySchema)
-		.handler(async ({ context, input }) => {
-			const orgId = context.activeOrganization!.id;
-			return await db
-				.select()
-				.from(connectors)
-				.where(eq(connectors.organizationId, orgId))
-				.orderBy(connectors.createdAt)
-				.limit(input.pageSize)
-				.offset((input.page - 1) * input.pageSize);
-		}),
+	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context, input }) => {
+		const orgId = context.activeOrganization!.id;
+		return await db
+			.select()
+			.from(connectors)
+			.where(eq(connectors.organizationId, orgId))
+			.orderBy(connectors.createdAt)
+			.limit(input.pageSize)
+			.offset((input.page - 1) * input.pageSize);
+	}),
 
 	getById: organizationProcedure
 		.input(z.object({ id: z.string() }))
@@ -36,43 +38,36 @@ export const connectorsRouter = {
 				throwNotFound("Connector");
 			}
 			// Never return decrypted credentials
-			return { ...connector, encryptedCredentials: connector.encryptedCredentials ? "[ENCRYPTED]" : null };
+			return {
+				...connector,
+				encryptedCredentials: connector.encryptedCredentials ? "[ENCRYPTED]" : null,
+			};
 		}),
 
-	create: organizationProcedure
-		.input(createConnectorSchema)
-		.handler(async ({ context, input }) => {
-			const orgId = context.activeOrganization!.id;
-			const id = randomUUID();
-			const encryptedCredentials = input.credentials ? encryptSecret(input.credentials) : null;
-			await db.insert(connectors).values({
-				id,
-				organizationId: orgId,
-				type: input.type,
-				provider: input.provider,
-				name: input.name,
-				config: input.config,
-				encryptedCredentials,
-				status: input.status,
-			});
-			const [created] = await db
-				.select()
-				.from(connectors)
-				.where(eq(connectors.id, id))
-				.limit(1);
-			return { ...created!, encryptedCredentials: encryptedCredentials ? "[ENCRYPTED]" : null };
-		}),
+	create: organizationProcedure.input(createConnectorSchema).handler(async ({ context, input }) => {
+		const orgId = context.activeOrganization!.id;
+		const id = randomUUID();
+		const encryptedCredentials = input.credentials ? encryptSecret(input.credentials) : null;
+		await db.insert(connectors).values({
+			id,
+			organizationId: orgId,
+			type: input.type,
+			provider: input.provider,
+			name: input.name,
+			config: input.config,
+			encryptedCredentials,
+			status: input.status,
+		});
+		const [created] = await db.select().from(connectors).where(eq(connectors.id, id)).limit(1);
+		return { ...created!, encryptedCredentials: encryptedCredentials ? "[ENCRYPTED]" : null };
+	}),
 
 	update: organizationProcedure
 		.input(z.object({ id: z.string() }).merge(createConnectorSchema.partial()))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
 			const { id, credentials, ...rest } = input;
-			const [existing] = await db
-				.select()
-				.from(connectors)
-				.where(eq(connectors.id, id))
-				.limit(1);
+			const [existing] = await db.select().from(connectors).where(eq(connectors.id, id)).limit(1);
 			if (!existing || existing.organizationId !== orgId) {
 				throwNotFound("Connector");
 			}
@@ -81,11 +76,7 @@ export const connectorsRouter = {
 				updateData.encryptedCredentials = credentials ? encryptSecret(credentials) : null;
 			}
 			await db.update(connectors).set(updateData).where(eq(connectors.id, id));
-			const [updated] = await db
-				.select()
-				.from(connectors)
-				.where(eq(connectors.id, id))
-				.limit(1);
+			const [updated] = await db.select().from(connectors).where(eq(connectors.id, id)).limit(1);
 			return updated;
 		}),
 
@@ -169,10 +160,13 @@ export const connectorsRouter = {
 				throwNotFound("Webhook endpoint");
 			}
 			const encryptedSecret = encryptSecret({ secret: input.newSecret });
-			await db.update(webhookEndpoints).set({
-				encryptedSecret,
-				updatedAt: new Date(),
-			}).where(eq(webhookEndpoints.id, input.id));
+			await db
+				.update(webhookEndpoints)
+				.set({
+					encryptedSecret,
+					updatedAt: new Date(),
+				})
+				.where(eq(webhookEndpoints.id, input.id));
 			return { rotated: true };
 		}),
 

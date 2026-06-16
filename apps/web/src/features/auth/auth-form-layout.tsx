@@ -1,5 +1,11 @@
 import { type ReactNode } from "react";
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@agentclave/ui/components/card";
+import {
+	Card,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@agentclave/ui/components/card";
 
 interface AuthFormLayoutProps {
 	title: string;

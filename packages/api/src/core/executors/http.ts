@@ -18,10 +18,7 @@ interface ToolExecutorConfig {
 	idempotencyHeader?: string;
 }
 
-function resolveTemplate(
-	template: string,
-	vars: Record<string, Record<string, unknown>>,
-): string {
+function resolveTemplate(template: string, vars: Record<string, Record<string, unknown>>): string {
 	let resolved = template;
 
 	// Flatten nested vars into dot-path keys for matching
@@ -42,7 +39,7 @@ function resolveTemplate(
 
 	// Replace all {{namespace.path}} placeholders
 	resolved = resolved.replace(/\{\{([^}]+)\}\}/g, function (match: string, path: string): string {
-		return (path in flatVars) ? (flatVars[path] ?? match) : match;
+		return path in flatVars ? (flatVars[path] ?? match) : match;
 	});
 
 	// Check for unresolved placeholders
@@ -75,9 +72,7 @@ function redactSensitive(
 	return result;
 }
 
-export async function executeHttpRequest(input: {
-	toolRequestId: string;
-}): Promise<void> {
+export async function executeHttpRequest(input: { toolRequestId: string }): Promise<void> {
 	const { toolRequestId } = input;
 
 	const [toolRequest] = await db
@@ -90,11 +85,7 @@ export async function executeHttpRequest(input: {
 		throw new Error(`Tool request not found: ${toolRequestId}`);
 	}
 
-	const [tool] = await db
-		.select()
-		.from(tools)
-		.where(eq(tools.id, toolRequest.toolId))
-		.limit(1);
+	const [tool] = await db.select().from(tools).where(eq(tools.id, toolRequest.toolId)).limit(1);
 
 	if (!tool) {
 		throw new Error(`Tool not found: ${toolRequest.toolId}`);
@@ -173,17 +164,14 @@ export async function executeHttpRequest(input: {
 	}
 
 	// Store request metadata (redacted)
-	const requestMetadata = redactSensitive(
-		{ method, url, headers },
-		credentialValues,
-	);
+	const requestMetadata = redactSensitive({ method, url, headers }, credentialValues);
 
 	const startTime = Date.now();
 
 	try {
 		const response = await fetch(url, fetchOptions);
 		const latencyMs = Date.now() - startTime;
-		const responseBody = await response.json() as Record<string, unknown>;
+		const responseBody = (await response.json()) as Record<string, unknown>;
 
 		if (!response.ok) {
 			// Store failed execution
@@ -198,11 +186,14 @@ export async function executeHttpRequest(input: {
 				errorMetadata: { statusCode: response.status, statusText: response.statusText },
 			});
 
-			await db.update(toolRequests).set({
-				status: "failed",
-				completedAt: new Date(),
-				updatedAt: new Date(),
-			}).where(eq(toolRequests.id, toolRequestId));
+			await db
+				.update(toolRequests)
+				.set({
+					status: "failed",
+					completedAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.where(eq(toolRequests.id, toolRequestId));
 
 			return;
 		}
@@ -218,11 +209,14 @@ export async function executeHttpRequest(input: {
 			latencyMs,
 		});
 
-		await db.update(toolRequests).set({
-			status: "executed",
-			completedAt: new Date(),
-			updatedAt: new Date(),
-		}).where(eq(toolRequests.id, toolRequestId));
+		await db
+			.update(toolRequests)
+			.set({
+				status: "executed",
+				completedAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.where(eq(toolRequests.id, toolRequestId));
 	} catch (error) {
 		const latencyMs = Date.now() - startTime;
 		const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -237,10 +231,13 @@ export async function executeHttpRequest(input: {
 			errorMetadata: { message: errorMessage },
 		});
 
-		await db.update(toolRequests).set({
-			status: "failed",
-			completedAt: new Date(),
-			updatedAt: new Date(),
-		}).where(eq(toolRequests.id, toolRequestId));
+		await db
+			.update(toolRequests)
+			.set({
+				status: "failed",
+				completedAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.where(eq(toolRequests.id, toolRequestId));
 	}
 }

@@ -22,9 +22,7 @@ type UserPayload = {
 // ── Repair helper for orphaned workspace accounts ──────────────────
 // Mirrors the "earliest membership" rule from databaseHooks.session.create.before.
 
-export async function repairOrphanedWorkspaceForUser(
-	user: UserPayload,
-): Promise<{
+export async function repairOrphanedWorkspaceForUser(user: UserPayload): Promise<{
 	action:
 		| "restored-session-from-member"
 		| "attached-owner-to-existing-workspace"
@@ -105,9 +103,7 @@ export async function repairOrphanedWorkspaceForUser(
 
 // ── Signup bootstrap (direct-DB path only) ────────────────────────
 
-async function createOrganizationDirect(
-	userId: string,
-): Promise<string | null> {
+async function createOrganizationDirect(userId: string): Promise<string | null> {
 	const orgId = randomUUID();
 	const memberId = randomUUID();
 	const timestamp = new Date();
@@ -136,10 +132,7 @@ async function createOrganizationDirect(
 	}
 }
 
-export async function onUserCreateAfter(
-	user: UserPayload,
-	_context?: unknown,
-): Promise<void> {
+export async function onUserCreateAfter(user: UserPayload, _context?: unknown): Promise<void> {
 	// Direct-DB path only: Better Auth 1.5+ runs databaseHooks.user.create.after
 	// after the transaction commits, and the hook has no request headers/context.
 	// auth.api.createOrganization depends on that context and will silently fail.

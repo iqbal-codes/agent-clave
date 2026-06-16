@@ -99,7 +99,6 @@ services:
     networks:
       - agentclave-network
 
-
 volumes:
   postgres_data:
     name: agentclave-postgres

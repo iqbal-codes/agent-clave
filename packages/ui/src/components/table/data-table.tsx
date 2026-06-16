@@ -12,7 +12,12 @@ interface DataTableProps<TData> extends React.ComponentProps<"div"> {
 	onRowClick?: (row: TData) => void;
 }
 
-export function DataTable<TData>({ table, actionBar, children, onRowClick }: DataTableProps<TData>) {
+export function DataTable<TData>({
+	table,
+	actionBar,
+	children,
+	onRowClick,
+}: DataTableProps<TData>) {
 	return (
 		<div className="flex flex-1 flex-col space-y-4">
 			{children}

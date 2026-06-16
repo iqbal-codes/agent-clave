@@ -42,7 +42,13 @@ export const AGENT_STATUSES = ["active", "paused"] as const;
 export type AgentStatus = (typeof AGENT_STATUSES)[number];
 
 // ── Approval Statuses ───────────────────────────────────────
-export const APPROVAL_STATUSES = ["pending", "approved", "rejected", "expired", "cancelled"] as const;
+export const APPROVAL_STATUSES = [
+	"pending",
+	"approved",
+	"rejected",
+	"expired",
+	"cancelled",
+] as const;
 export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
 
 // ── Queue Names ────────────────────────────────────────────

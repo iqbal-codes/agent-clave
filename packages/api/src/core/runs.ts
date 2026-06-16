@@ -16,9 +16,7 @@ interface UpdateRunStatusInput {
 	totalCostCents?: number | null;
 }
 
-export async function updateRunStatus(
-	input: UpdateRunStatusInput,
-): Promise<void> {
+export async function updateRunStatus(input: UpdateRunStatusInput): Promise<void> {
 	const updates: Record<string, unknown> = {
 		status: input.status,
 		updatedAt: new Date(),
@@ -33,8 +31,5 @@ export async function updateRunStatus(
 	if (input.totalLatencyMs !== undefined) updates.totalLatencyMs = input.totalLatencyMs;
 	if (input.totalCostCents !== undefined) updates.totalCostCents = input.totalCostCents;
 
-	await db
-		.update(agentRuns)
-		.set(updates)
-		.where(eq(agentRuns.id, input.runId));
+	await db.update(agentRuns).set(updates).where(eq(agentRuns.id, input.runId));
 }

@@ -54,7 +54,17 @@ async function writeStep(input: {
 	costCents?: number | null;
 	latencyMs?: number | null;
 }): Promise<void> {
-	const { runId, stepIndex, type, status, inputMetadata, outputMetadata, errorMetadata, costCents, latencyMs } = input;
+	const {
+		runId,
+		stepIndex,
+		type,
+		status,
+		inputMetadata,
+		outputMetadata,
+		errorMetadata,
+		costCents,
+		latencyMs,
+	} = input;
 	await db.insert(agentRunSteps).values({
 		id: randomUUID(),
 		runId,
@@ -79,7 +89,8 @@ async function writeAudit(input: {
 	action: string;
 	metadata?: Record<string, unknown> | null;
 }): Promise<void> {
-	const { organizationId, actorType, actorId, runId, targetType, targetId, action, metadata } = input;
+	const { organizationId, actorType, actorId, runId, targetType, targetId, action, metadata } =
+		input;
 	await db.insert(auditLogs).values({
 		id: randomUUID(),
 		organizationId,
@@ -105,32 +116,27 @@ function generateApprovalCode(): string {
 export async function processAgentRun(input: { runId: string }): Promise<void> {
 	const { runId } = input;
 
-	const [run] = await db
-		.select()
-		.from(agentRuns)
-		.where(eq(agentRuns.id, runId))
-		.limit(1);
+	const [run] = await db.select().from(agentRuns).where(eq(agentRuns.id, runId)).limit(1);
 
 	if (!run) {
 		throw new Error(`Agent run not found: ${runId}`);
 	}
 
-	const [agent] = await db
-		.select()
-		.from(agents)
-		.where(eq(agents.id, run.agentId))
-		.limit(1);
+	const [agent] = await db.select().from(agents).where(eq(agents.id, run.agentId)).limit(1);
 
 	if (!agent) {
 		throw new Error(`Agent not found: ${run.agentId}`);
 	}
 
 	// Mark run as running
-	await db.update(agentRuns).set({
-		status: "running",
-		startedAt: new Date(),
-		updatedAt: new Date(),
-	}).where(eq(agentRuns.id, runId));
+	await db
+		.update(agentRuns)
+		.set({
+			status: "running",
+			startedAt: new Date(),
+			updatedAt: new Date(),
+		})
+		.where(eq(agentRuns.id, runId));
 
 	await writeStep({
 		runId,
@@ -143,33 +149,22 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 	const enabledToolBindings = await db
 		.select()
 		.from(agentTools)
-		.where(
-			and(
-				eq(agentTools.agentId, run.agentId),
-				eq(agentTools.enabled, true),
-			),
-		);
+		.where(and(eq(agentTools.agentId, run.agentId), eq(agentTools.enabled, true)));
 
 	const toolIds = enabledToolBindings.map((b) => b.toolId);
-	const enabledTools = toolIds.length > 0
-		? await db.select().from(tools).where(
-				and(
-					eq(tools.organizationId, run.organizationId),
-					eq(tools.status, "active"),
-				),
-			)
-		: [];
+	const enabledTools =
+		toolIds.length > 0
+			? await db
+					.select()
+					.from(tools)
+					.where(and(eq(tools.organizationId, run.organizationId), eq(tools.status, "active")))
+			: [];
 
 	// Load policies
 	const policyRules = await db
 		.select()
 		.from(policies)
-		.where(
-			and(
-				eq(policies.organizationId, run.organizationId),
-				eq(policies.enabled, true),
-			),
-		);
+		.where(and(eq(policies.organizationId, run.organizationId), eq(policies.enabled, true)));
 
 	// Build OpenRouter tool specs
 	const openRouterTools = enabledTools
@@ -227,12 +222,15 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 
 		if (!response.ok) {
 			const errorText = await response.text();
-			await db.update(agentRuns).set({
-				status: "failed",
-				errorMessage: `OpenRouter error: ${response.status} ${errorText}`,
-				completedAt: new Date(),
-				updatedAt: new Date(),
-			}).where(eq(agentRuns.id, runId));
+			await db
+				.update(agentRuns)
+				.set({
+					status: "failed",
+					errorMessage: `OpenRouter error: ${response.status} ${errorText}`,
+					completedAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.where(eq(agentRuns.id, runId));
 
 			await writeStep({
 				runId,
@@ -268,13 +266,16 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 		// No tool calls — model is done
 		if (!choice?.message?.tool_calls?.length) {
 			const finalResponse = choice?.message?.content ?? "";
-			await db.update(agentRuns).set({
-				status: "completed",
-				finalResponse,
-				completedAt: new Date(),
-				totalLatencyMs: latencyMs,
-				updatedAt: new Date(),
-			}).where(eq(agentRuns.id, runId));
+			await db
+				.update(agentRuns)
+				.set({
+					status: "completed",
+					finalResponse,
+					completedAt: new Date(),
+					totalLatencyMs: latencyMs,
+					updatedAt: new Date(),
+				})
+				.where(eq(agentRuns.id, runId));
 
 			await writeStep({
 				runId,
@@ -290,12 +291,15 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 		// Process tool calls (only one allowed)
 		const toolCalls = choice.message.tool_calls;
 		if (toolCalls.length > 1) {
-			await db.update(agentRuns).set({
-				status: "failed",
-				errorMessage: "Parallel tool calls are disabled but multiple tool calls were returned",
-				completedAt: new Date(),
-				updatedAt: new Date(),
-			}).where(eq(agentRuns.id, runId));
+			await db
+				.update(agentRuns)
+				.set({
+					status: "failed",
+					errorMessage: "Parallel tool calls are disabled but multiple tool calls were returned",
+					completedAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.where(eq(agentRuns.id, runId));
 
 			return;
 		}
@@ -342,7 +346,13 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 			messages.push({
 				role: "assistant",
 				content: null,
-				tool_calls: [{ id: toolCall.id, type: "function", function: { name: toolName, arguments: toolCall.function.arguments } }],
+				tool_calls: [
+					{
+						id: toolCall.id,
+						type: "function",
+						function: { name: toolName, arguments: toolCall.function.arguments },
+					},
+				],
 			});
 			messages.push({
 				role: "tool",
@@ -397,7 +407,13 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 			messages.push({
 				role: "assistant",
 				content: null,
-				tool_calls: [{ id: toolCall.id, type: "function", function: { name: toolName, arguments: toolCall.function.arguments } }],
+				tool_calls: [
+					{
+						id: toolCall.id,
+						type: "function",
+						function: { name: toolName, arguments: toolCall.function.arguments },
+					},
+				],
 			});
 			messages.push({
 				role: "tool",
@@ -437,7 +453,11 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 			targetType: "tool_request",
 			targetId: requestId,
 			action: "policy.evaluated",
-			metadata: { toolName, decision: policyResult.decision, matchedPolicyId: policyResult.matchedPolicyId },
+			metadata: {
+				toolName,
+				decision: policyResult.decision,
+				matchedPolicyId: policyResult.matchedPolicyId,
+			},
 		});
 
 		if (policyResult.decision === "deny") {
@@ -457,7 +477,13 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 			messages.push({
 				role: "assistant",
 				content: null,
-				tool_calls: [{ id: toolCall.id, type: "function", function: { name: toolName, arguments: toolCall.function.arguments } }],
+				tool_calls: [
+					{
+						id: toolCall.id,
+						type: "function",
+						function: { name: toolName, arguments: toolCall.function.arguments },
+					},
+				],
 			});
 			messages.push({
 				role: "tool",
@@ -507,10 +533,13 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 				expiresAt,
 			});
 
-			await db.update(agentRuns).set({
-				status: "waiting_for_approval",
-				updatedAt: new Date(),
-			}).where(eq(agentRuns.id, runId));
+			await db
+				.update(agentRuns)
+				.set({
+					status: "waiting_for_approval",
+					updatedAt: new Date(),
+				})
+				.where(eq(agentRuns.id, runId));
 
 			await writeAudit({
 				organizationId: run.organizationId,
@@ -577,7 +606,13 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 		messages.push({
 			role: "assistant",
 			content: null,
-			tool_calls: [{ id: toolCall.id, type: "function", function: { name: toolName, arguments: toolCall.function.arguments } }],
+			tool_calls: [
+				{
+					id: toolCall.id,
+					type: "function",
+					function: { name: toolName, arguments: toolCall.function.arguments },
+				},
+			],
 		});
 		messages.push({
 			role: "tool",
@@ -609,12 +644,15 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 	}
 
 	// Exceeded max iterations
-	await db.update(agentRuns).set({
-		status: "failed",
-		errorMessage: `Exceeded maximum ${MAX_ITERATIONS} model iterations`,
-		completedAt: new Date(),
-		updatedAt: new Date(),
-	}).where(eq(agentRuns.id, runId));
+	await db
+		.update(agentRuns)
+		.set({
+			status: "failed",
+			errorMessage: `Exceeded maximum ${MAX_ITERATIONS} model iterations`,
+			completedAt: new Date(),
+			updatedAt: new Date(),
+		})
+		.where(eq(agentRuns.id, runId));
 }
 
 async function sendTelegramApproval(input: {

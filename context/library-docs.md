@@ -135,6 +135,7 @@
 - Formatting uses tabs and double quotes.
 - Lint/type options are defined in `vite.config.ts`.
 - Vitest: catalog `latest`.
+
 ## Version notes from workspace catalog
 
 - TypeScript: catalog `^6`.

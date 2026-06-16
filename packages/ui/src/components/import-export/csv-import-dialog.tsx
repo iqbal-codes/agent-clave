@@ -5,7 +5,14 @@ import type { z } from "zod";
 import { toast } from "sonner";
 import { parseCsvFile, downloadCsv } from "../../lib/csv";
 import { FileUploader } from "../file-uploader";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogDescription,
+	DialogFooter,
+} from "../dialog";
 import { Button } from "../button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../table";
 import { ScrollArea } from "../scroll-area";
@@ -46,8 +53,11 @@ function normalizeCsvHeader(header: string): string {
 
 type DialogPhase = "upload" | "preview" | "importing" | "result";
 
-export function CsvImportDialog<TRow extends Record<string, unknown>>(props: CsvImportDialogProps<TRow>) {
-	const { open, onOpenChange, title, description, columns, schema, templateFilename, onImport } = props;
+export function CsvImportDialog<TRow extends Record<string, unknown>>(
+	props: CsvImportDialogProps<TRow>,
+) {
+	const { open, onOpenChange, title, description, columns, schema, templateFilename, onImport } =
+		props;
 
 	const [files, setFiles] = React.useState<File[]>([]);
 	const [phase, setPhase] = React.useState<DialogPhase>("upload");
@@ -77,7 +87,10 @@ export function CsvImportDialog<TRow extends Record<string, unknown>>(props: Csv
 		[onOpenChange, reset],
 	);
 
-	const requiredKeys = React.useMemo(() => columns.filter((c) => c.required).map((c) => c.key), [columns]);
+	const requiredKeys = React.useMemo(
+		() => columns.filter((c) => c.required).map((c) => c.key),
+		[columns],
+	);
 
 	// Process file when selected
 	React.useEffect(() => {
@@ -147,7 +160,9 @@ export function CsvImportDialog<TRow extends Record<string, unknown>>(props: Csv
 					if (parsed.success) {
 						mappedRows.push(parsed.data);
 					} else {
-						const msg = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ");
+						const msg = parsed.error.issues
+							.map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+							.join("; ");
 						rowValidationErrors.push(`Row ${i + 2}: ${msg}`);
 					}
 				}
@@ -165,7 +180,9 @@ export function CsvImportDialog<TRow extends Record<string, unknown>>(props: Csv
 			}
 		})();
 
-		return () => { cancelled = true; };
+		return () => {
+			cancelled = true;
+		};
 	}, [files, columns, schema, requiredKeys]);
 
 	const handleDownloadTemplate = React.useCallback(() => {
@@ -238,7 +255,13 @@ export function CsvImportDialog<TRow extends Record<string, unknown>>(props: Csv
 							<Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
 								Download template
 							</Button>
-							<Button variant="ghost" size="sm" onClick={() => { reset(); }}>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => {
+									reset();
+								}}
+							>
 								Upload different file
 							</Button>
 						</div>
@@ -276,10 +299,8 @@ export function CsvImportDialog<TRow extends Record<string, unknown>>(props: Csv
 										{rawRows.slice(0, 25).map((row, i) => (
 											<TableRow key={i}>
 												{columns.map((col) => {
-													const rawKey = headers.find(
-														(h) => normalizeCsvHeader(h) === col.key,
-													);
-													const val = rawKey ? row[rawKey] ?? "" : "";
+													const rawKey = headers.find((h) => normalizeCsvHeader(h) === col.key);
+													const val = rawKey ? (row[rawKey] ?? "") : "";
 													return <TableCell key={col.key}>{val}</TableCell>;
 												})}
 											</TableRow>

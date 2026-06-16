@@ -20,7 +20,12 @@ interface StockAdjustment {
 
 // In-memory fixture data
 const products: Product[] = [
-	{ sku: "BKSO-SOLO", name: "Bakso Solo 500g", aliases: ["bakso solo", "stok bakso solo"], quantity: 80 },
+	{
+		sku: "BKSO-SOLO",
+		name: "Bakso Solo 500g",
+		aliases: ["bakso solo", "stok bakso solo"],
+		quantity: 80,
+	},
 ];
 
 // In-memory idempotency store
@@ -40,10 +45,11 @@ app.get("/products/search", (c) => {
 		return c.json({ results: [] });
 	}
 
-	const results = products.filter((p) =>
-		p.name.toLowerCase().includes(query) ||
-		p.aliases.some((a) => a.toLowerCase().includes(query)) ||
-		p.sku.toLowerCase().includes(query),
+	const results = products.filter(
+		(p) =>
+			p.name.toLowerCase().includes(query) ||
+			p.aliases.some((a) => a.toLowerCase().includes(query)) ||
+			p.sku.toLowerCase().includes(query),
 	);
 
 	return c.json({ results });
@@ -78,7 +84,7 @@ app.post("/stock-adjustments", async (c) => {
 		return c.json(existing);
 	}
 
-	const body = await c.req.json() as {
+	const body = (await c.req.json()) as {
 		sku: string;
 		newQuantity: number;
 		reason: string;

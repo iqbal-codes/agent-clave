@@ -9,9 +9,11 @@ The runtime core is generic: connectors, webhook endpoints, tools, tool requests
 AgentClave is not a coding agent, multi-agent orchestrator, or replacement for similar tools. It is the governance, approval, execution-control, and observability layer between AI agents and external business tools.
 
 ## One-liner
+
 AgentClave lets teams safely run AI agents by turning model output into governed, reviewable, auditable tool calls.
 
 ## Problem statement
+
 Organizations want AI to reduce repetitive operational work, but direct AI mutation of production tools creates risk. Teams need to know what the agent saw, what it produced, what it wanted to do, whether policy allowed it, who approved or rejected it, what was executed, how much it cost, how long it took, and how often reviewers accepted or rejected the suggestions.
 
 Without a control plane, AI workflow automation is hard to trust, debug, audit, and scale.

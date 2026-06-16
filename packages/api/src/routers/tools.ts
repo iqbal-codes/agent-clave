@@ -9,94 +9,93 @@ import { createToolSchema, bindAgentToolSchema, tableQuerySchema } from "@agentc
 import { validateJsonSchemaPayload } from "../core/json-schema/validate";
 
 export const toolsRouter = {
-	list: organizationProcedure
-		.input(tableQuerySchema)
-		.handler(async ({ context, input }) => {
-			const orgId = context.activeOrganization!.id;
-			return await db
-				.select()
-				.from(tools)
-				.where(eq(tools.organizationId, orgId))
-				.orderBy(tools.createdAt)
-				.limit(input.pageSize)
-				.offset((input.page - 1) * input.pageSize);
-		}),
+	list: organizationProcedure.input(tableQuerySchema).handler(async ({ context, input }) => {
+		const orgId = context.activeOrganization!.id;
+		return await db
+			.select()
+			.from(tools)
+			.where(eq(tools.organizationId, orgId))
+			.orderBy(tools.createdAt)
+			.limit(input.pageSize)
+			.offset((input.page - 1) * input.pageSize);
+	}),
 
 	getById: organizationProcedure
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
-			const [tool] = await db
-				.select()
-				.from(tools)
-				.where(eq(tools.id, input.id))
-				.limit(1);
+			const [tool] = await db.select().from(tools).where(eq(tools.id, input.id)).limit(1);
 			if (!tool || tool.organizationId !== orgId) {
 				throwNotFound("Tool");
 			}
 			return tool;
 		}),
 
-	create: organizationProcedure
-		.input(createToolSchema)
-		.handler(async ({ context, input }) => {
-			const orgId = context.activeOrganization!.id;
+	create: organizationProcedure.input(createToolSchema).handler(async ({ context, input }) => {
+		const orgId = context.activeOrganization!.id;
 
-			// Validate JSON schemas
-			validateJsonSchemaPayload({ schema: input.inputSchema, payload: {}, label: `${input.name} input schema` });
-			validateJsonSchemaPayload({ schema: input.outputSchema, payload: {}, label: `${input.name} output schema` });
+		// Validate JSON schemas
+		validateJsonSchemaPayload({
+			schema: input.inputSchema,
+			payload: {},
+			label: `${input.name} input schema`,
+		});
+		validateJsonSchemaPayload({
+			schema: input.outputSchema,
+			payload: {},
+			label: `${input.name} output schema`,
+		});
 
-			const id = randomUUID();
-			await db.insert(tools).values({
-				id,
-				organizationId: orgId,
-				name: input.name,
-				description: input.description ?? null,
-				connectorId: input.connectorId ?? null,
-				inputSchema: input.inputSchema,
-				outputSchema: input.outputSchema,
-				riskLevel: input.riskLevel,
-				executorType: input.executorType,
-				executorConfig: input.executorConfig,
-				defaultPolicy: input.defaultPolicy,
-				status: input.status,
-			});
-			const [created] = await db
-				.select()
-				.from(tools)
-				.where(eq(tools.id, id))
-				.limit(1);
-			return created;
-		}),
+		const id = randomUUID();
+		await db.insert(tools).values({
+			id,
+			organizationId: orgId,
+			name: input.name,
+			description: input.description ?? null,
+			connectorId: input.connectorId ?? null,
+			inputSchema: input.inputSchema,
+			outputSchema: input.outputSchema,
+			riskLevel: input.riskLevel,
+			executorType: input.executorType,
+			executorConfig: input.executorConfig,
+			defaultPolicy: input.defaultPolicy,
+			status: input.status,
+		});
+		const [created] = await db.select().from(tools).where(eq(tools.id, id)).limit(1);
+		return created;
+	}),
 
 	update: organizationProcedure
 		.input(createToolSchema.partial().extend({ id: z.string() }))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
 			const { id, ...rest } = input;
-			const [existing] = await db
-				.select()
-				.from(tools)
-				.where(eq(tools.id, id))
-				.limit(1);
+			const [existing] = await db.select().from(tools).where(eq(tools.id, id)).limit(1);
 			if (!existing || existing.organizationId !== orgId) {
 				throwNotFound("Tool");
 			}
 
 			// Validate JSON schemas if provided
 			if (rest.inputSchema) {
-				validateJsonSchemaPayload({ schema: rest.inputSchema, payload: {}, label: `${rest.name ?? existing.name} input schema` });
+				validateJsonSchemaPayload({
+					schema: rest.inputSchema,
+					payload: {},
+					label: `${rest.name ?? existing.name} input schema`,
+				});
 			}
 			if (rest.outputSchema) {
-				validateJsonSchemaPayload({ schema: rest.outputSchema, payload: {}, label: `${rest.name ?? existing.name} output schema` });
+				validateJsonSchemaPayload({
+					schema: rest.outputSchema,
+					payload: {},
+					label: `${rest.name ?? existing.name} output schema`,
+				});
 			}
 
-			await db.update(tools).set({ ...rest, updatedAt: new Date() }).where(eq(tools.id, id));
-			const [updated] = await db
-				.select()
-				.from(tools)
-				.where(eq(tools.id, id))
-				.limit(1);
+			await db
+				.update(tools)
+				.set({ ...rest, updatedAt: new Date() })
+				.where(eq(tools.id, id));
+			const [updated] = await db.select().from(tools).where(eq(tools.id, id)).limit(1);
 			return updated;
 		}),
 
@@ -104,11 +103,7 @@ export const toolsRouter = {
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
-			const [existing] = await db
-				.select()
-				.from(tools)
-				.where(eq(tools.id, input.id))
-				.limit(1);
+			const [existing] = await db.select().from(tools).where(eq(tools.id, input.id)).limit(1);
 			if (!existing || existing.organizationId !== orgId) {
 				throwNotFound("Tool");
 			}
@@ -121,11 +116,7 @@ export const toolsRouter = {
 		.handler(async ({ context, input }) => {
 			const orgId = context.activeOrganization!.id;
 			// Verify tool belongs to org
-			const [tool] = await db
-				.select()
-				.from(tools)
-				.where(eq(tools.id, input.toolId))
-				.limit(1);
+			const [tool] = await db.select().from(tools).where(eq(tools.id, input.toolId)).limit(1);
 			if (!tool || tool.organizationId !== orgId) {
 				throwNotFound("Tool");
 			}
@@ -142,15 +133,10 @@ export const toolsRouter = {
 
 	unbindFromAgent: organizationProcedure
 		.input(z.object({ agentId: z.string(), toolId: z.string() }))
-	.handler(async ({ input }) => {
+		.handler(async ({ input }) => {
 			await db
 				.delete(agentTools)
-				.where(
-					and(
-						eq(agentTools.agentId, input.agentId),
-						eq(agentTools.toolId, input.toolId),
-					),
-				);
+				.where(and(eq(agentTools.agentId, input.agentId), eq(agentTools.toolId, input.toolId)));
 			return { unbound: true };
 		}),
 };

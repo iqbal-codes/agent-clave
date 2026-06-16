@@ -68,7 +68,6 @@ app.use("/api/*", async (c, next) => {
 
 app.get("/", (c) => c.text("OK"));
 
-
 app.onError((err, c) => {
 	if (err instanceof HTTPException) {
 		return err.getResponse();
