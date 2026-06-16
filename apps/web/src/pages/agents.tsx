@@ -19,7 +19,7 @@ export function AgentsPage() {
 	const { data: agents, isLoading } = useQuery({
 		queryKey: ["agents"],
 		queryFn: async () => {
-			const res = await fetch("/api/agents.list", {
+			const res = await fetch("/api/agents/list", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ page: 1, pageSize: 100 }),

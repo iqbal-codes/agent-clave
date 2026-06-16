@@ -8,7 +8,7 @@ export function ConnectorsPage() {
 	const { data: connectors, isLoading } = useQuery({
 		queryKey: ["connectors"],
 		queryFn: async () => {
-			const res = await fetch("/api/connectors.list", {
+			const res = await fetch("/api/connectors/list", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ page: 1, pageSize: 100 }),
@@ -24,7 +24,7 @@ export function ConnectorsPage() {
 	});
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-6 p-6">
 			<div>
 				<h1 className="text-3xl font-bold tracking-tight">Connectors</h1>
 				<p className="text-muted-foreground">

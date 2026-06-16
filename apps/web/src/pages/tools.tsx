@@ -9,7 +9,7 @@ export function ToolsPage() {
 	const { data: tools, isLoading } = useQuery({
 		queryKey: ["tools"],
 		queryFn: async () => {
-			const res = await fetch("/api/tools.list", {
+			const res = await fetch("/api/tools/list", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ page: 1, pageSize: 100 }),
@@ -27,7 +27,7 @@ export function ToolsPage() {
 	});
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-6 p-6">
 			<div>
 				<h1 className="text-3xl font-bold tracking-tight">Tools</h1>
 				<p className="text-muted-foreground">

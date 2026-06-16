@@ -220,8 +220,6 @@ export async function processAgentRun(input: { runId: string }): Promise<void> {
 				messages,
 				tools: openRouterTools.length > 0 ? openRouterTools : undefined,
 				tool_choice: openRouterTools.length > 0 ? "auto" : undefined,
-				parallel_tool_calls: false,
-				provider: { require_parameters: true },
 			}),
 		});
 

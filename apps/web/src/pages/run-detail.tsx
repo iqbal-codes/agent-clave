@@ -45,7 +45,7 @@ export function RunDetailPage() {
 	const { data: run, isLoading } = useQuery({
 		queryKey: ["run", id],
 		queryFn: async () => {
-			const res = await fetch("/api/runs.getById", {
+			const res = await fetch("/api/runs/getById", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ id }),

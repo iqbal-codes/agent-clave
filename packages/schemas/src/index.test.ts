@@ -13,7 +13,7 @@ describe("createAgentSchema", () => {
 	it("accepts valid agent with required fields", () => {
 		const result = createAgentSchema.parse({ name: "Test Agent" });
 		expect(result.name).toBe("Test Agent");
-		expect(result.model).toBe("gpt-4o");
+		expect(result.model).toBe("xiaomi/mimo-v2.5");
 		expect(result.riskLevel).toBe("medium");
 	});
 

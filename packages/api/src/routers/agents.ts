@@ -54,7 +54,7 @@ export const agentsRouter = {
 				description: input.description ?? null,
 				role: input.role ?? null,
 				purpose: input.purpose ?? null,
-				model: input.model ?? "gpt-4o",
+				model: input.model ?? "xiaomi/mimo-v2.5",
 				systemPrompt: input.systemPrompt ?? null,
 				guardrails: input.guardrails ?? [],
 				riskLevel: input.riskLevel ?? "medium",

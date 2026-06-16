@@ -14,7 +14,7 @@
 		"dev:demo-inventory-api": "vp run --filter ./apps/demo-inventory-api dev",
 		"db:studio": "vp run --filter ./packages/db db:studio",
 		"db:generate": "vp run --filter ./packages/db db:generate",
-		"db:migrate": "vp run --filter ./packages/db db:migrate",
+		"db:push": "vp run --filter ./packages/db db:push",
 		"db:check": "./scripts/db-setup.sh status",
 		"check": "vp check --fix",
 		"test": "vitest run",

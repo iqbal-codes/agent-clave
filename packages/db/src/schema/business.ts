@@ -96,7 +96,7 @@ export const agents = pgTable(
 		description: text("description"),
 		role: text("role"),
 		purpose: text("purpose"),
-		model: text("model").default("gpt-4o").notNull(),
+		model: text("model").default("xiaomi/mimo-v2.5").notNull(),
 		systemPrompt: text("system_prompt"),
 		guardrails: jsonb("guardrails").$type<string[]>().default([]),
 		riskLevel: riskLevelEnum("risk_level").default("medium").notNull(),

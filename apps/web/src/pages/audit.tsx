@@ -19,7 +19,7 @@ export function AuditPage() {
 	const { data: logs, isLoading } = useQuery({
 		queryKey: ["audit"],
 		queryFn: async () => {
-			const res = await fetch("/api/auditLogs.list", {
+			const res = await fetch("/api/auditLogs/list", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ page: 1, pageSize: 100 }),

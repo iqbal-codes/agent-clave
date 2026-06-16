@@ -17,7 +17,7 @@ if [ -f "$PROJECT_ROOT/.env" ]; then
   export $(grep -v '^#' "$PROJECT_ROOT/.env" | xargs)
 fi
 
-DB_CONTAINER="${POSTGRES_CONTAINER:-postgres-local}"
+DB_CONTAINER="${POSTGRES_CONTAINER:-agentclave-db}"
 DB_NAME="${POSTGRES_DB:-agentclave_dev}"
 DB_USER="${POSTGRES_USER:-postgres}"
 DB_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
@@ -27,16 +27,10 @@ DB_ADMIN_DB="${POSTGRES_ADMIN_DB:-postgres}"
 
 ensure_container_running() {
   if ! docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
-    echo "  Starting PostgreSQL container..."
-    docker start "$DB_CONTAINER" 2>/dev/null || {
-      echo "  Creating new PostgreSQL container..."
-      docker run -d \
-        --name "$DB_CONTAINER" \
-        -e POSTGRES_USER="$DB_USER" \
-        -e POSTGRES_PASSWORD="$DB_PASSWORD" \
-        -e POSTGRES_DB="$DB_NAME" \
-        -p "$DB_PORT:5432" \
-        postgres:16-alpine
+    echo "  Starting PostgreSQL container via docker compose..."
+    docker compose up -d postgres 2>/dev/null || {
+      echo "  Error: Failed to start PostgreSQL via docker compose"
+      exit 1
     }
   fi
 }
@@ -44,7 +38,7 @@ ensure_container_running() {
 wait_for_postgres() {
   local retries=30
   while [ $retries -gt 0 ]; do
-    if docker exec "$DB_CONTAINER" pg_isready -U "$DB_USER" -d "$DB_NAME" > /dev/null 2>&1; then
+    if docker exec "$DB_CONTAINER" pg_isready -U "$DB_USER" > /dev/null 2>&1; then
       return 0
     fi
     retries=$((retries - 1))

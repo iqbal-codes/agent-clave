@@ -23,7 +23,7 @@ export function AgentDetailPage() {
 	const { data: agent, isLoading } = useQuery({
 		queryKey: ["agent", id],
 		queryFn: async () => {
-			const res = await fetch("/api/agents.getById", {
+			const res = await fetch("/api/agents/getById", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ id }),

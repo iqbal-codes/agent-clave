@@ -19,7 +19,7 @@ export const createAgentSchema = z.object({
 	description: z.string().optional(),
 	role: z.string().optional(),
 	purpose: z.string().optional(),
-	model: z.string().optional().default("gpt-4o"),
+	model: z.string().optional().default("xiaomi/mimo-v2.5"),
 	systemPrompt: z.string().optional(),
 	guardrails: z.array(z.string()).optional(),
 	riskLevel: z.enum(["low", "medium", "high", "critical"]).default("medium"),

@@ -17,7 +17,7 @@ export function ApprovalsPage() {
 	const { data: approvals, isLoading } = useQuery({
 		queryKey: ["approvals"],
 		queryFn: async () => {
-			const res = await fetch("/api/toolRequests.listPendingApproval", {
+			const res = await fetch("/api/toolRequests/listPendingApproval", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ page: 1, pageSize: 50 }),

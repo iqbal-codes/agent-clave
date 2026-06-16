@@ -7,6 +7,7 @@ import { toolRequestsRouter } from "./tool-requests";
 import { policyRouter } from "./policy";
 import { connectorsRouter } from "./connectors";
 import { toolsRouter } from "./tools";
+import { auditRouter } from "./audit";
 
 export const appRouter = {
 	healthCheck: publicProcedure.handler(() => "OK"),
@@ -72,6 +73,10 @@ export const appRouter = {
 		delete: toolsRouter.delete,
 		bindToAgent: toolsRouter.bindToAgent,
 		unbindFromAgent: toolsRouter.unbindFromAgent,
+	},
+
+	auditLogs: {
+		list: auditRouter.list,
 	},
 };
 

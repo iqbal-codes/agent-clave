@@ -25,7 +25,7 @@ export function DashboardPage() {
 	const { data: dashboard } = useQuery({
 		queryKey: ["dashboard", activeOrganization?.id],
 		queryFn: async () => {
-			const res = await fetch("/api/organization.getDashboard", {
+			const res = await fetch("/api/organization/getDashboard", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({}),

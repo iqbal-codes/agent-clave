@@ -49,7 +49,7 @@ export async function seedWorkspaceTables(
 			description: "Handles inventory requests from Telegram through governed tools",
 			role: "inventory_ops",
 			purpose: "Handle inventory requests from Telegram through governed tools",
-			model: "gpt-4o",
+			model: "xiaomi/mimo-v2.5",
 			systemPrompt: [
 				"You are an inventory operations agent.",
 				"Rules:",

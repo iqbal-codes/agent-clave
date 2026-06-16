@@ -23,14 +23,27 @@ function resolveTemplate(
 	vars: Record<string, Record<string, unknown>>,
 ): string {
 	let resolved = template;
+
+	// Flatten nested vars into dot-path keys for matching
+	const flatVars: Record<string, string> = {};
 	for (const [namespace, values] of Object.entries(vars)) {
-		for (const [key, value] of Object.entries(values)) {
-			resolved = resolved.replace(
-				new RegExp(`\\{\\{${namespace}\\.${key}\\}\\}`, "g"),
-				String(value),
-			);
-		}
+		const flatten = (obj: Record<string, unknown>, prefix: string) => {
+			for (const [key, value] of Object.entries(obj)) {
+				const path = prefix ? `${prefix}.${key}` : key;
+				if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+					flatten(value as Record<string, unknown>, path);
+				} else {
+					flatVars[path] = String(value ?? "");
+				}
+			}
+		};
+		flatten(values, namespace);
 	}
+
+	// Replace all {{namespace.path}} placeholders
+	resolved = resolved.replace(/\{\{([^}]+)\}\}/g, function (match: string, path: string): string {
+		return (path in flatVars) ? (flatVars[path] ?? match) : match;
+	});
 
 	// Check for unresolved placeholders
 	const unresolvedMatch = resolved.match(/\{\{[^}]+\}\}/);
